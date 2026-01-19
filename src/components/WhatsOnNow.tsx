@@ -203,8 +203,8 @@ export function WhatsOnNow() {
   const { data: programs = [], isLoading, error, refetch } = useQuery({
     queryKey: ['epg', 'now'],
     queryFn: () => fetchEPG('now'),
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
-    staleTime: 2 * 60 * 1000, // Consider stale after 2 minutes
+    refetchInterval: 24 * 60 * 60 * 1000, // Refetch every 24 hours
+    staleTime: 12 * 60 * 60 * 1000, // Consider stale after 12 hours
   })
 
   // Show highlighted programs first, limit to 4 by default
