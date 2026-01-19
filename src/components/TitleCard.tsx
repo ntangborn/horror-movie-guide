@@ -68,10 +68,13 @@ function formatRuntime(minutes: number): string {
 function getUniqueServices(
   sources: AvailabilityCard['sources']
 ): Array<{ name: string; color: string }> {
+  if (!sources || !Array.isArray(sources)) return []
+
   const seen = new Set<string>()
   const services: Array<{ name: string; color: string }> = []
 
   for (const source of sources) {
+    if (!source?.service) continue
     const normalized = source.service.toLowerCase().trim()
     if (!seen.has(normalized)) {
       seen.add(normalized)

@@ -49,6 +49,7 @@ const SERVICE_BRANDING: Record<string, { color: string; textColor: string }> = {
 }
 
 function getServiceBranding(service: string): { color: string; textColor: string } {
+  if (!service) return { color: '#6B7280', textColor: 'white' }
   const key = service.toLowerCase()
   return SERVICE_BRANDING[key] || { color: '#6B7280', textColor: 'white' }
 }

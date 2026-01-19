@@ -43,6 +43,11 @@ export async function POST(request: NextRequest) {
     )
 
     if (error) {
+      // Log but don't fail if table doesn't exist - tracking is optional
+      if (error.code === 'PGRST205' || error.message?.includes('session_events')) {
+        console.warn('Track: session_events table not found, skipping')
+        return NextResponse.json({ success: true, count: 0, skipped: true })
+      }
       console.error('Track error:', error)
       return NextResponse.json({ error: 'Failed to track' }, { status: 500 })
     }
