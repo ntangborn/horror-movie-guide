@@ -7,7 +7,6 @@ import { Ghost, Film, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { FilterBar, type FilterState } from '@/components/FilterBar'
 import { TitleGrid } from '@/components/TitleGrid'
-import { WhatsOnNow } from '@/components/WhatsOnNow'
 import { fetchBrowseCards } from '@/lib/browse-data'
 import type { AvailabilityCard } from '@/types'
 
@@ -144,11 +143,6 @@ function BrowseContent() {
     <>
       {/* Filter Bar */}
       <FilterBar loading={isLoading} resultCount={isLoading ? undefined : totalCount} />
-
-      {/* What's On Now - Live TV */}
-      <div className="max-w-[1600px] mx-auto px-4">
-        <WhatsOnNow />
-      </div>
 
       {/* Main Content */}
       <div className="max-w-[1600px] mx-auto px-4 py-8">
