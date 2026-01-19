@@ -476,42 +476,22 @@ function HeroSection() {
       <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-[#0a0a0a] to-[#0a0a0a]" />
 
       {/* Content */}
-      <div className="relative px-4 py-16 md:py-24 text-center">
-        <div className="flex items-center justify-center gap-3 mb-6">
-          <div className="relative">
-            <Ghost className="w-16 h-16 text-purple-500" />
-            <Zap className="absolute -top-1 -right-1 w-6 h-6 text-yellow-400" />
+      <div className="relative px-4 py-8 md:py-12">
+        <div className="max-w-[1400px] mx-auto flex items-center gap-4">
+          <div className="relative flex-shrink-0">
+            <Ghost className="w-12 h-12 text-purple-500" />
+            <Zap className="absolute -top-1 -right-1 w-5 h-5 text-yellow-400" />
           </div>
-        </div>
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-          Ghosts in the Machine
-        </h1>
-        <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
-          Your ultimate guide to horror and sci-fi streaming. Discover what's on TV,
-          browse thousands of titles, and build the perfect movie marathon.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-4">
-          <Link
-            href="/tv-guide"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium transition-colors shadow-lg shadow-purple-900/30"
-          >
-            <Radio className="w-5 h-5" />
-            TV Guide
-          </Link>
-          <Link
-            href="/browse"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-colors"
-          >
-            <Film className="w-5 h-5" />
-            Browse Titles
-          </Link>
-          <Link
-            href="/binge"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-colors"
-          >
-            <PlayCircle className="w-5 h-5" />
-            Binge Playlists
-          </Link>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">
+              Ghosts in the Machine
+              <span className="text-purple-400 ml-2">Streaming TV Guide</span>
+            </h1>
+            <p className="text-sm md:text-base text-gray-400 mt-1 max-w-2xl">
+              Your ultimate guide to horror and sci-fi streaming. Discover what's on TV,
+              browse thousands of titles, and build the perfect movie marathon.
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -528,9 +508,9 @@ export default function HomePage() {
       <HeroSection />
 
       <div className="max-w-[1400px] mx-auto px-4">
-        <WhatsOnNowSection />
-        <BrowseSection />
         <BingeSection />
+        <BrowseSection />
+        <WhatsOnNowSection />
         <WatchlistCTA />
       </div>
 
