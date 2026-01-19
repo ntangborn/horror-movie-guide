@@ -18,12 +18,13 @@ import {
   LogOut,
   LogIn,
   ChevronDown,
+  Radio,
 } from 'lucide-react'
 import { getCurrentUser, signOut, onAuthStateChange } from '@/lib/auth'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Home', icon: Tv },
+  { href: '/tv-guide', label: 'TV Guide', icon: Radio },
   { href: '/browse', label: 'Browse', icon: Film },
   { href: '/binge', label: 'Binge', icon: PlayCircle },
   { href: '/watchlist', label: 'Watchlist', icon: Heart },
