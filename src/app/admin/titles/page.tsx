@@ -896,20 +896,39 @@ export default function AdminTitlesPage() {
   const [refreshingId, setRefreshingId] = useState<string | null>(null)
   const [enrichingId, setEnrichingId] = useState<string | null>(null)
 
-  // Fetch titles from Supabase
+  // Fetch titles from Supabase (handles pagination to get all titles)
   const fetchTitles = useCallback(async () => {
     setIsLoading(true)
     setError(null)
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('availability_cards')
-        .select('*')
-        .order('updated_at', { ascending: false })
+      const allTitles: Title[] = []
+      const pageSize = 1000
+      let page = 0
+      let hasMore = true
 
-      if (fetchError) throw fetchError
+      while (hasMore) {
+        const from = page * pageSize
+        const to = from + pageSize - 1
 
-      setTitles((data || []).map(mapDbRowToTitle))
+        const { data, error: fetchError } = await supabase
+          .from('availability_cards')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .range(from, to)
+
+        if (fetchError) throw fetchError
+
+        if (data && data.length > 0) {
+          allTitles.push(...data.map(mapDbRowToTitle))
+          hasMore = data.length === pageSize
+          page++
+        } else {
+          hasMore = false
+        }
+      }
+
+      setTitles(allTitles)
     } catch (err) {
       console.error('Error fetching titles:', err)
       setError('Failed to load titles. Please try again.')
