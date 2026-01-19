@@ -56,10 +56,14 @@ function getServiceBranding(service: string): { color: string; textColor: string
 
 /**
  * Format source type label
+ * Handles both our type values and Watchmode raw values ('sub', 'addon')
  */
 function formatSourceType(source: StreamingSource): string {
-  switch (source.type) {
+  const sourceType = source.type as string
+  switch (sourceType) {
     case 'subscription':
+    case 'sub':
+    case 'addon':
       return 'Subscription'
     case 'free':
       return 'Free'
