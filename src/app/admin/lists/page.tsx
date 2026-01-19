@@ -959,10 +959,16 @@ export default function AdminListsPage() {
       // Ensure cards array is deduplicated
       const uniqueCards = Array.from(new Set(list.cards))
 
+      console.log('Saving list:', list.title)
+      console.log('Card IDs to save:', uniqueCards)
+      console.log('Number of cards:', uniqueCards.length)
+
       const existing = lists.find((l) => l.id === list.id)
       if (existing) {
+        console.log('Previous card count:', existing.cards?.length)
+
         // Update existing list
-        const { error: updateError } = await supabase
+        const { error: updateError, data } = await supabase
           .from('curated_lists')
           .update({
             title: list.title,
@@ -975,10 +981,15 @@ export default function AdminListsPage() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', list.id)
+          .select()
 
-        if (updateError) throw updateError
+        if (updateError) {
+          console.error('Update error:', updateError)
+          throw updateError
+        }
 
-        console.log('List saved with cards:', uniqueCards.length)
+        console.log('List saved successfully:', data)
+        console.log('New card count:', uniqueCards.length)
       } else {
         // Insert new list
         const { error: insertError } = await supabase

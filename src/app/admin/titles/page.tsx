@@ -993,17 +993,25 @@ export default function AdminTitlesPage() {
   const handleDeleteTitle = async () => {
     if (selectedTitle) {
       try {
-        const { error: deleteError } = await supabase
+        console.log('Attempting to delete title:', selectedTitle.id, selectedTitle.title)
+
+        const { error: deleteError, count } = await supabase
           .from('availability_cards')
           .delete()
           .eq('id', selectedTitle.id)
+          .select()
 
-        if (deleteError) throw deleteError
+        if (deleteError) {
+          console.error('Delete error from Supabase:', deleteError)
+          throw deleteError
+        }
 
+        console.log('Delete successful, rows affected:', count)
         setTitles(titles.filter((t) => t.id !== selectedTitle.id))
+        alert(`Successfully deleted "${selectedTitle.title}"`)
       } catch (err) {
         console.error('Error deleting title:', err)
-        alert('Failed to delete title. Please try again.')
+        alert(`Failed to delete title: ${err instanceof Error ? err.message : 'Unknown error'}`)
       }
     }
   }
