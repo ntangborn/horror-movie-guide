@@ -68,10 +68,10 @@ export async function fetchBrowseCards(
   if (filters.runtime) {
     const runtime = RUNTIME_OPTIONS.find((r) => r.value === filters.runtime)
     if (runtime) {
-      if (runtime.min !== undefined) {
+      if ('min' in runtime && runtime.min !== undefined) {
         query = query.gte('runtime_minutes', runtime.min)
       }
-      if (runtime.max !== undefined) {
+      if ('max' in runtime && runtime.max !== undefined) {
         query = query.lte('runtime_minutes', runtime.max)
       }
     }
@@ -114,7 +114,7 @@ export async function fetchBrowseCards(
     throw new Error('Failed to fetch browse cards')
   }
 
-  let cards = (data || []) as AvailabilityCard[]
+  let cards = (data || []) as unknown as AvailabilityCard[]
 
   // Client-side service filter (for JSONB array of sources)
   if (filters.service) {
@@ -198,7 +198,7 @@ export async function searchCards(
     return []
   }
 
-  return (data || []) as AvailabilityCard[]
+  return (data || []) as unknown as AvailabilityCard[]
 }
 
 /**
@@ -217,7 +217,7 @@ export async function getFeaturedCards(limit: number = 10): Promise<Availability
     return []
   }
 
-  return (data || []) as AvailabilityCard[]
+  return (data || []) as unknown as AvailabilityCard[]
 }
 
 /**
@@ -239,7 +239,7 @@ export async function getCardsByGenre(
     return []
   }
 
-  return (data || []) as AvailabilityCard[]
+  return (data || []) as unknown as AvailabilityCard[]
 }
 
 /**
@@ -257,5 +257,5 @@ export async function getRecentlyAddedCards(limit: number = 20): Promise<Availab
     return []
   }
 
-  return (data || []) as AvailabilityCard[]
+  return (data || []) as unknown as AvailabilityCard[]
 }

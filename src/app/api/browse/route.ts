@@ -58,10 +58,10 @@ export async function GET(request: NextRequest) {
     if (runtime) {
       const runtimeOption = RUNTIME_OPTIONS.find((r) => r.value === runtime)
       if (runtimeOption) {
-        if (runtimeOption.min !== undefined) {
+        if ('min' in runtimeOption && runtimeOption.min !== undefined) {
           query = query.gte('runtime_minutes', runtimeOption.min)
         }
-        if (runtimeOption.max !== undefined) {
+        if ('max' in runtimeOption && runtimeOption.max !== undefined) {
           query = query.lte('runtime_minutes', runtimeOption.max)
         }
       }

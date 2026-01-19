@@ -794,8 +794,8 @@ export function filterMockCards(
     const runtime = RUNTIME_OPTIONS.find((r) => r.value === filters.runtime)
     if (runtime) {
       result = result.filter((card) => {
-        if (runtime.min !== undefined && card.runtime_minutes < runtime.min) return false
-        if (runtime.max !== undefined && card.runtime_minutes > runtime.max) return false
+        if ('min' in runtime && runtime.min !== undefined && card.runtime_minutes < runtime.min) return false
+        if ('max' in runtime && runtime.max !== undefined && card.runtime_minutes > runtime.max) return false
         return true
       })
     }

@@ -62,10 +62,10 @@ async function fetchFilteredCards({
   if (filters.runtime) {
     const runtime = RUNTIME_OPTIONS.find((r) => r.value === filters.runtime)
     if (runtime) {
-      if (runtime.min !== undefined) {
+      if ('min' in runtime && runtime.min !== undefined) {
         query = query.gte('runtime_minutes', runtime.min)
       }
-      if (runtime.max !== undefined) {
+      if ('max' in runtime && runtime.max !== undefined) {
         query = query.lte('runtime_minutes', runtime.max)
       }
     }
