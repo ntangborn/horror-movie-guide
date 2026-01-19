@@ -130,15 +130,31 @@ async function trackClickOut(
 }
 
 /**
+ * Normalize streaming source to handle both API formats
+ * (Watchmode raw format uses 'name', our type uses 'service')
+ */
+function normalizeSource(source: StreamingSource & { name?: string; web_url?: string; ios_url?: string; android_url?: string }): {
+  serviceName: string
+  serviceType: StreamingSource['type']
+  link: string | null
+} {
+  // Handle both 'service' (our type) and 'name' (Watchmode raw)
+  const serviceName = source.service || source.name || 'Unknown'
+  // Handle both 'deep_link'/'url' (our type) and 'web_url'/'ios_url'/'android_url' (Watchmode raw)
+  const link = source.url || source.deep_link || source.web_url || source.ios_url || source.android_url || null
+  return { serviceName, serviceType: source.type, link }
+}
+
+/**
  * Streaming Source Button
  */
 function StreamingSourceButton({ source, cardId }: { source: StreamingSource; cardId: string }) {
-  const branding = getServiceBranding(source.service)
-  const link = source.url || source.deep_link
+  const { serviceName, link } = normalizeSource(source)
+  const branding = getServiceBranding(serviceName)
 
   const handleClick = () => {
     // Track the click (fire and forget)
-    trackClickOut(cardId, source.service, source.type, link || null)
+    trackClickOut(cardId, serviceName, source.type, link)
 
     // Open the link
     if (link) {
@@ -163,10 +179,10 @@ function StreamingSourceButton({ source, cardId }: { source: StreamingSource; ca
           className="w-11 h-11 rounded-lg flex items-center justify-center font-bold text-sm"
           style={{ backgroundColor: branding.color, color: branding.textColor }}
         >
-          {source.service?.charAt(0).toUpperCase() || '?'}
+          {serviceName.charAt(0).toUpperCase()}
         </div>
         <div className="text-left">
-          <p className="font-medium text-white">{source.service || 'Unknown'}</p>
+          <p className="font-medium text-white">{serviceName}</p>
           <p className="text-sm text-gray-400">{formatSourceType(source)}</p>
         </div>
       </div>

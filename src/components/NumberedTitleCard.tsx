@@ -25,11 +25,14 @@ function formatRuntime(minutes: number): string {
 
 /**
  * Get primary streaming service
+ * Handles both 'service' (our type) and 'name' (Watchmode raw format)
  */
 function getPrimaryService(card: AvailabilityCard): string | null {
   if (!card.sources || card.sources.length === 0) return null
-  const service = card.sources[0]?.service
-  return service || null
+  const source = card.sources[0] as any
+  // Handle both 'service' (our type) and 'name' (Watchmode raw)
+  const serviceName = source?.service || source?.name
+  return serviceName || null
 }
 
 /**

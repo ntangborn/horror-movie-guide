@@ -36,12 +36,15 @@ const CARD_GAP = 12
 
 /**
  * Get primary streaming service from card sources
+ * Handles both 'service' (our type) and 'name' (Watchmode raw format)
  */
 function getPrimaryService(card: AvailabilityCard): { name: string; color: string } | null {
   if (!card.sources || card.sources.length === 0) return null
 
-  const source = card.sources[0]
-  if (!source?.service || typeof source.service !== 'string') return null
+  const source = card.sources[0] as any
+  // Handle both 'service' (our type) and 'name' (Watchmode raw)
+  const serviceName = source?.service || source?.name
+  if (!serviceName || typeof serviceName !== 'string') return null
 
   const colors: Record<string, string> = {
     shudder: '#E50914',
@@ -58,9 +61,9 @@ function getPrimaryService(card: AvailabilityCard): { name: string; color: strin
     'apple tv+': '#000000',
   }
 
-  const normalized = source.service.toLowerCase().trim()
+  const normalized = serviceName.toLowerCase().trim()
   return {
-    name: source.service,
+    name: serviceName,
     color: colors[normalized] || '#6B7280',
   }
 }
