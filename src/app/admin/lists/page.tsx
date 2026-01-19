@@ -393,8 +393,17 @@ function EditCardsModal({
     if (!list) return
     setIsSaving(true)
     // Convert ListCard[] to card ID strings for database storage
-    const cardIds = cards.map(c => c.id)
-    onSave({ ...list, cards: cardIds, cardDetails: cards, updated_at: new Date().toISOString().split('T')[0] })
+    // Deduplicate IDs while preserving order
+    const seenIds = new Set<string>()
+    const cardIds = cards
+      .map(c => c.id)
+      .filter(id => {
+        if (seenIds.has(id)) return false
+        seenIds.add(id)
+        return true
+      })
+    const dedupedCards = cards.filter((c, i) => cards.findIndex(x => x.id === c.id) === i)
+    await onSave({ ...list, cards: cardIds, cardDetails: dedupedCards, updated_at: new Date().toISOString().split('T')[0] })
     setIsSaving(false)
     onClose()
   }
@@ -945,8 +954,11 @@ export default function AdminListsPage() {
   }
 
   // CRUD handlers
-  const handleSaveList = async (list: CuratedList) => {
+  const handleSaveList = async (list: CuratedList): Promise<void> => {
     try {
+      // Ensure cards array is deduplicated
+      const uniqueCards = [...new Set(list.cards)]
+
       const existing = lists.find((l) => l.id === list.id)
       if (existing) {
         // Update existing list
@@ -957,7 +969,7 @@ export default function AdminListsPage() {
             slug: list.slug,
             description: list.description,
             cover_image: list.cover_image,
-            cards: list.cards,
+            cards: uniqueCards,
             featured: list.featured,
             published: list.published,
             updated_at: new Date().toISOString(),
@@ -965,6 +977,8 @@ export default function AdminListsPage() {
           .eq('id', list.id)
 
         if (updateError) throw updateError
+
+        console.log('List saved with cards:', uniqueCards.length)
       } else {
         // Insert new list
         const { error: insertError } = await supabase
@@ -974,7 +988,7 @@ export default function AdminListsPage() {
             slug: list.slug,
             description: list.description,
             cover_image: list.cover_image,
-            cards: list.cards,
+            cards: uniqueCards,
             type: 'editorial',
             author: 'Admin',
             featured: list.featured,
