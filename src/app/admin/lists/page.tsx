@@ -957,7 +957,7 @@ export default function AdminListsPage() {
   const handleSaveList = async (list: CuratedList): Promise<void> => {
     try {
       // Ensure cards array is deduplicated
-      const uniqueCards = [...new Set(list.cards)]
+      const uniqueCards = Array.from(new Set(list.cards))
 
       const existing = lists.find((l) => l.id === list.id)
       if (existing) {
