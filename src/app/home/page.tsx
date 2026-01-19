@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import { format, differenceInMinutes } from 'date-fns'
 import { getRecentlyAddedCards, getFeaturedCards } from '@/lib/browse-data'
-import { getFeaturedLists, getCardsByIds, type BingeRow } from '@/lib/list-data'
+import { getRecentLists, getCardsByIds, type BingeRow } from '@/lib/list-data'
 import { useTitleModal } from '@/contexts/TitleModalContext'
 import type { AvailabilityCard, CuratedList } from '@/types'
 
@@ -343,8 +343,8 @@ function PlaylistCard({ list, cards }: { list: CuratedList; cards: AvailabilityC
 
 function BingeSection() {
   const { data: lists = [], isLoading: listsLoading } = useQuery({
-    queryKey: ['home', 'featured-lists'],
-    queryFn: () => getFeaturedLists(),
+    queryKey: ['home', 'recent-lists'],
+    queryFn: () => getRecentLists(4),
     staleTime: 10 * 60 * 1000,
   })
 
@@ -353,7 +353,7 @@ function BingeSection() {
     queryKey: ['home', 'binge-rows', lists.map(l => l.id)],
     queryFn: async () => {
       const rows: BingeRow[] = []
-      for (const list of lists.slice(0, 3)) { // Only show top 3
+      for (const list of lists) {
         const cards = await getCardsByIds(list.cards as string[])
         rows.push({ list, cards })
       }
@@ -387,8 +387,8 @@ function BingeSection() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-3">
-          {[1, 2, 3].map(i => (
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map(i => (
             <div key={i} className="bg-[#141414] rounded-xl border border-gray-800 overflow-hidden animate-pulse">
               <div className="aspect-video bg-[#1a1a1a]" />
               <div className="p-4">
@@ -399,7 +399,7 @@ function BingeSection() {
           ))}
         </div>
       ) : rows.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           {rows.map(({ list, cards }) => (
             <PlaylistCard key={list.id} list={list} cards={cards} />
           ))}

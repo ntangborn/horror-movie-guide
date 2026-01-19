@@ -114,6 +114,25 @@ export async function getFeaturedLists(): Promise<CuratedList[]> {
 }
 
 /**
+ * Get recently updated/created lists for Home page
+ */
+export async function getRecentLists(limit: number = 4): Promise<CuratedList[]> {
+  const { data, error } = await supabase
+    .from('curated_lists')
+    .select('*')
+    .eq('published', true)
+    .order('updated_at', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    console.error('Error fetching recent lists:', error.message)
+    return []
+  }
+
+  return (data || []) as CuratedList[]
+}
+
+/**
  * Get all featured list slugs
  */
 export async function getFeaturedListSlugs(): Promise<string[]> {
