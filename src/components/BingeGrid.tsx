@@ -41,7 +41,7 @@ function getPrimaryService(card: AvailabilityCard): { name: string; color: strin
   if (!card.sources || card.sources.length === 0) return null
 
   const source = card.sources[0]
-  if (!source?.service) return null
+  if (!source?.service || typeof source.service !== 'string') return null
 
   const colors: Record<string, string> = {
     shudder: '#E50914',

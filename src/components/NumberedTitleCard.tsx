@@ -28,7 +28,8 @@ function formatRuntime(minutes: number): string {
  */
 function getPrimaryService(card: AvailabilityCard): string | null {
   if (!card.sources || card.sources.length === 0) return null
-  return card.sources[0].service
+  const service = card.sources[0]?.service
+  return service || null
 }
 
 /**

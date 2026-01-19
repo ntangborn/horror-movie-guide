@@ -163,10 +163,10 @@ function StreamingSourceButton({ source, cardId }: { source: StreamingSource; ca
           className="w-11 h-11 rounded-lg flex items-center justify-center font-bold text-sm"
           style={{ backgroundColor: branding.color, color: branding.textColor }}
         >
-          {source.service.charAt(0).toUpperCase()}
+          {source.service?.charAt(0).toUpperCase() || '?'}
         </div>
         <div className="text-left">
-          <p className="font-medium text-white">{source.service}</p>
+          <p className="font-medium text-white">{source.service || 'Unknown'}</p>
           <p className="text-sm text-gray-400">{formatSourceType(source)}</p>
         </div>
       </div>
