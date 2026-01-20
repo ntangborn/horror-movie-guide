@@ -48,9 +48,9 @@ function createDbClient() {
  * Get all watchlist items for the current user
  */
 /**
- * Get the internal user ID from the users table based on auth user
+ * Get or create the internal user ID from the users table based on auth user
  */
-async function getInternalUserId(supabase: ReturnType<typeof createDbClient>, authUser: { id: string; email?: string }): Promise<string | null> {
+async function getOrCreateUserId(supabase: ReturnType<typeof createDbClient>, authUser: { id: string; email?: string }): Promise<string | null> {
   // First try to find by auth user ID (if users.id matches auth.uid)
   const { data: byId } = await supabase
     .from('users')
@@ -69,6 +69,21 @@ async function getInternalUserId(supabase: ReturnType<typeof createDbClient>, au
       .single()
 
     if (byEmail) return byEmail.id
+  }
+
+  // User doesn't exist - create them using the auth user's ID
+  if (authUser.email) {
+    const { data: newUser, error } = await supabase
+      .from('users')
+      .insert({
+        id: authUser.id,
+        email: authUser.email,
+      })
+      .select('id')
+      .single()
+
+    if (newUser) return newUser.id
+    console.error('Failed to create user:', error)
   }
 
   return null
@@ -92,7 +107,7 @@ export async function GET() {
     const supabase = createDbClient()
 
     // Get internal user ID
-    const userId = await getInternalUserId(supabase, user)
+    const userId = await getOrCreateUserId(supabase, user)
     if (!userId) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -189,7 +204,7 @@ export async function POST(request: NextRequest) {
     const supabase = createDbClient()
 
     // Get internal user ID
-    const userId = await getInternalUserId(supabase, user)
+    const userId = await getOrCreateUserId(supabase, user)
     if (!userId) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -278,7 +293,7 @@ export async function DELETE(request: NextRequest) {
     const supabase = createDbClient()
 
     // Get internal user ID
-    const userId = await getInternalUserId(supabase, user)
+    const userId = await getOrCreateUserId(supabase, user)
     if (!userId) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -344,7 +359,7 @@ export async function PATCH(request: NextRequest) {
     const supabase = createDbClient()
 
     // Get internal user ID
-    const userId = await getInternalUserId(supabase, user)
+    const userId = await getOrCreateUserId(supabase, user)
     if (!userId) {
       return NextResponse.json(
         { error: 'User not found' },
