@@ -169,15 +169,19 @@ function AddTitleModal({
         editorial_tags: editorialTags.split(',').map((s) => s.trim()).filter(Boolean),
       }
 
-      const { data, error: insertError } = await supabase
-        .from('availability_cards')
-        .insert(newTitle)
-        .select()
-        .single()
+      const response = await fetch('/api/admin/add-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTitle),
+      })
 
-      if (insertError) throw insertError
+      const result = await response.json()
 
-      onAdd(mapDbRowToTitle(data))
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to add title')
+      }
+
+      onAdd(mapDbRowToTitle(result.data))
       handleClose()
     } catch (err: any) {
       console.error('Error saving title:', err)
@@ -1610,17 +1614,22 @@ export default function AdminTitlesPage() {
 
   const handleEditTitle = async (updatedTitle: Title) => {
     try {
-      const { error: updateError } = await supabase
-        .from('availability_cards')
-        .update({
+      const response = await fetch('/api/admin/manual-enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: updatedTitle.id,
           subgenres: updatedTitle.subgenres,
           editorial_tags: updatedTitle.editorial_tags,
           featured: updatedTitle.featured,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', updatedTitle.id)
+        }),
+      })
 
-      if (updateError) throw updateError
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update')
+      }
 
       setTitles(titles.map((t) => (t.id === updatedTitle.id ? updatedTitle : t)))
     } catch (err) {
@@ -1670,12 +1679,16 @@ export default function AdminTitlesPage() {
     )
 
     try {
-      const { error: updateError } = await supabase
-        .from('availability_cards')
-        .update({ featured: newFeatured, updated_at: new Date().toISOString() })
-        .eq('id', titleId)
+      const response = await fetch('/api/admin/manual-enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: titleId, featured: newFeatured }),
+      })
 
-      if (updateError) throw updateError
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to update')
+      }
     } catch (err) {
       console.error('Error toggling featured:', err)
       // Revert optimistic update
