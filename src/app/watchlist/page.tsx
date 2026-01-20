@@ -246,6 +246,7 @@ export default function WatchlistPage() {
     watchlist,
     isLoading,
     error,
+    isNotAuthenticated,
     removeFromWatchlist,
     reorderWatchlist,
     isRemoving,
@@ -286,9 +287,6 @@ export default function WatchlistPage() {
     },
     [openModal]
   )
-
-  // Check if user is not logged in (empty watchlist with no error could mean either)
-  const isNotLoggedIn = !isLoading && watchlist.length === 0 && !error
 
   return (
     <main className="min-h-screen bg-[#0a0a0a]">
@@ -343,8 +341,13 @@ export default function WatchlistPage() {
           </div>
         )}
 
-        {/* Empty or not signed in */}
-        {!isLoading && !error && watchlist.length === 0 && (
+        {/* Not signed in state */}
+        {!isLoading && isNotAuthenticated && (
+          <NotSignedIn />
+        )}
+
+        {/* Empty watchlist (user is signed in but has no items) */}
+        {!isLoading && !error && !isNotAuthenticated && watchlist.length === 0 && (
           <EmptyState />
         )}
 

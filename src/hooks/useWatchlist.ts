@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { AvailabilityCard } from '@/types'
@@ -17,14 +18,24 @@ interface WatchlistResponse {
 }
 
 /**
+ * Custom error for authentication failures
+ */
+export class NotAuthenticatedError extends Error {
+  constructor() {
+    super('User is not authenticated')
+    this.name = 'NotAuthenticatedError'
+  }
+}
+
+/**
  * Fetch watchlist from API
  */
 async function fetchWatchlist(): Promise<WatchlistItem[]> {
   const response = await fetch('/api/user/watchlist')
 
   if (response.status === 401) {
-    // Not logged in - return empty
-    return []
+    // Not logged in - throw specific error so UI can distinguish from empty watchlist
+    throw new NotAuthenticatedError()
   }
 
   if (!response.ok) {
@@ -103,6 +114,9 @@ async function reorderWatchlistApi(items: { cardId: string; position: number }[]
 export function useWatchlist() {
   const queryClient = useQueryClient()
 
+  // Track pending mutations to prevent race conditions on rapid clicks
+  const pendingMutations = useRef<Set<string>>(new Set())
+
   // Fetch watchlist
   const {
     data: watchlist = [],
@@ -120,6 +134,9 @@ export function useWatchlist() {
   const addMutation = useMutation({
     mutationFn: addToWatchlistApi,
     onMutate: async (cardId) => {
+      // Track this mutation to prevent duplicates
+      pendingMutations.current.add(`add-${cardId}`)
+
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['watchlist'] })
 
@@ -153,7 +170,9 @@ export function useWatchlist() {
         queryClient.setQueryData(['watchlist'], context.previousWatchlist)
       }
     },
-    onSettled: () => {
+    onSettled: (data, error, cardId) => {
+      // Clear pending tracking
+      pendingMutations.current.delete(`add-${cardId}`)
       // Refetch to get real data
       queryClient.invalidateQueries({ queryKey: ['watchlist'] })
     },
@@ -163,6 +182,9 @@ export function useWatchlist() {
   const removeMutation = useMutation({
     mutationFn: removeFromWatchlistApi,
     onMutate: async (cardId) => {
+      // Track this mutation to prevent duplicates
+      pendingMutations.current.add(`remove-${cardId}`)
+
       await queryClient.cancelQueries({ queryKey: ['watchlist'] })
 
       const previousWatchlist = queryClient.getQueryData<WatchlistItem[]>(['watchlist'])
@@ -179,7 +201,9 @@ export function useWatchlist() {
         queryClient.setQueryData(['watchlist'], context.previousWatchlist)
       }
     },
-    onSettled: () => {
+    onSettled: (data, error, cardId) => {
+      // Clear pending tracking
+      pendingMutations.current.delete(`remove-${cardId}`)
       queryClient.invalidateQueries({ queryKey: ['watchlist'] })
     },
   })
@@ -220,26 +244,53 @@ export function useWatchlist() {
     return watchlist.some(item => item.cardId === cardId)
   }
 
+  // Check if a mutation is pending for a specific card
+  const isMutationPending = (cardId: string): boolean => {
+    return pendingMutations.current.has(`add-${cardId}`) ||
+           pendingMutations.current.has(`remove-${cardId}`)
+  }
+
+  // Safe add to watchlist - prevents duplicate calls
+  const safeAddToWatchlist = useCallback((cardId: string) => {
+    if (isMutationPending(cardId)) {
+      return // Ignore duplicate call
+    }
+    addMutation.mutate(cardId)
+  }, [addMutation])
+
+  // Safe remove from watchlist - prevents duplicate calls
+  const safeRemoveFromWatchlist = useCallback((cardId: string) => {
+    if (isMutationPending(cardId)) {
+      return // Ignore duplicate call
+    }
+    removeMutation.mutate(cardId)
+  }, [removeMutation])
+
   // Get watchlist as AvailabilityCard array (for display)
   const watchlistCards: AvailabilityCard[] = watchlist
     .filter(item => item.card?.id) // Filter out placeholder items
     .map(item => item.card)
+
+  // Check if user is not authenticated (distinct from other errors)
+  const isNotAuthenticated = error instanceof NotAuthenticatedError
 
   return {
     // Data
     watchlist,
     watchlistCards,
     isLoading,
-    error,
+    error: isNotAuthenticated ? null : error, // Don't expose auth error as generic error
+    isNotAuthenticated,
 
-    // Actions
-    addToWatchlist: addMutation.mutate,
-    removeFromWatchlist: removeMutation.mutate,
+    // Actions (use safe versions to prevent race conditions)
+    addToWatchlist: safeAddToWatchlist,
+    removeFromWatchlist: safeRemoveFromWatchlist,
     reorderWatchlist: reorderMutation.mutate,
     refetch,
 
     // Status
     isInWatchlist,
+    isMutationPending, // Check if a specific card has a pending mutation
     isAdding: addMutation.isPending,
     isRemoving: removeMutation.isPending,
     isReordering: reorderMutation.isPending,
