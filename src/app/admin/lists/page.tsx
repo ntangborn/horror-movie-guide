@@ -348,13 +348,11 @@ function EditCardsModal({
 
   useEffect(() => {
     if (searchQuery.length >= 2) {
-      console.log('Searching for:', searchQuery, 'in', availableCards.length, 'cards')
       const results = availableCards.filter(
         (card) =>
           card.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
           !cards.some((c) => c.id === card.id)
       )
-      console.log('Found', results.length, 'results:', results.map(c => c.title))
       setSearchResults(results)
     } else {
       setSearchResults([])
@@ -522,8 +520,19 @@ function EditCardsModal({
                     onClick={() => handleAddCard(card)}
                     className="w-full flex items-center gap-3 p-2 rounded-lg bg-[#1a1a1a] border border-gray-800 hover:border-purple-500 transition-colors text-left"
                   >
-                    <div className="w-8 h-11 bg-gray-800 rounded flex items-center justify-center flex-shrink-0">
-                      <Film className="w-4 h-4 text-gray-600" />
+                    <div className="w-8 h-11 bg-gray-800 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {card.poster_url ? (
+                        <img
+                          src={card.poster_url}
+                          alt={card.title}
+                          className="w-full h-full object-cover rounded"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                          }}
+                        />
+                      ) : null}
+                      <Film className={`w-4 h-4 text-gray-600 ${card.poster_url ? 'hidden' : ''}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-white truncate">{card.title}</p>
@@ -841,20 +850,11 @@ export default function AdminListsPage() {
   // Fetch available cards for search via API (bypasses RLS)
   const fetchAvailableCards = useCallback(async () => {
     try {
-      console.log('Fetching available cards...')
       const response = await fetch('/api/admin/cards')
       const result = await response.json()
 
-      console.log('Cards API response:', response.status, result)
-
       if (!response.ok) {
         throw new Error(result.error || 'Failed to fetch cards')
-      }
-
-      console.log('Loaded', result.cards?.length || 0, 'cards')
-      // Log a sample to verify data
-      if (result.cards?.length > 0) {
-        console.log('Sample cards:', result.cards.slice(0, 5).map((c: any) => c.title))
       }
 
       setAvailableCards(result.cards || [])
