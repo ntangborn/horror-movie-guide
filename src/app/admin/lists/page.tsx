@@ -348,11 +348,13 @@ function EditCardsModal({
 
   useEffect(() => {
     if (searchQuery.length >= 2) {
+      console.log('Searching for:', searchQuery, 'in', availableCards.length, 'cards')
       const results = availableCards.filter(
         (card) =>
           card.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
           !cards.some((c) => c.id === card.id)
       )
+      console.log('Found', results.length, 'results:', results.map(c => c.title))
       setSearchResults(results)
     } else {
       setSearchResults([])
@@ -839,11 +841,20 @@ export default function AdminListsPage() {
   // Fetch available cards for search via API (bypasses RLS)
   const fetchAvailableCards = useCallback(async () => {
     try {
+      console.log('Fetching available cards...')
       const response = await fetch('/api/admin/cards')
       const result = await response.json()
 
+      console.log('Cards API response:', response.status, result)
+
       if (!response.ok) {
         throw new Error(result.error || 'Failed to fetch cards')
+      }
+
+      console.log('Loaded', result.cards?.length || 0, 'cards')
+      // Log a sample to verify data
+      if (result.cards?.length > 0) {
+        console.log('Sample cards:', result.cards.slice(0, 5).map((c: any) => c.title))
       }
 
       setAvailableCards(result.cards || [])
