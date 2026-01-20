@@ -22,6 +22,10 @@ import {
   ChevronDown,
   ExternalLink,
   Download,
+  Pencil,
+  ImageIcon,
+  FileText,
+  Tv,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -885,6 +889,640 @@ function DeleteConfirmModal({
 }
 
 // ============================================
+// Streaming Source interface for manual enrichment
+// ============================================
+interface StreamingSource {
+  name: string
+  type: 'subscription' | 'free' | 'rent' | 'buy'
+  url: string
+  region: string
+  price?: string
+  quality?: string
+}
+
+// ============================================
+// Manual Enrich Modal
+// ============================================
+function ManualEnrichModal({
+  isOpen,
+  title,
+  onClose,
+  onSave,
+}: {
+  isOpen: boolean
+  title: Title | null
+  onClose: () => void
+  onSave: (updates: Partial<Title> & { id: string }) => void
+}) {
+  const [activeTab, setActiveTab] = useState<'poster' | 'metadata' | 'sources'>('poster')
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Form state
+  const [posterUrl, setPosterUrl] = useState('')
+  const [backdropUrl, setBackdropUrl] = useState('')
+  const [synopsis, setSynopsis] = useState('')
+  const [runtime, setRuntime] = useState('')
+  const [mpaaRating, setMpaaRating] = useState('')
+  const [director, setDirector] = useState('')
+  const [country, setCountry] = useState('')
+  const [genres, setGenres] = useState('')
+  const [imdbRating, setImdbRating] = useState('')
+  const [rtScore, setRtScore] = useState('')
+  const [letterboxdRating, setLetterboxdRating] = useState('')
+  const [sources, setSources] = useState<StreamingSource[]>([])
+
+  // Source editor state
+  const [editingSourceIndex, setEditingSourceIndex] = useState<number | null>(null)
+  const [newSource, setNewSource] = useState<StreamingSource>({
+    name: '',
+    type: 'subscription',
+    url: '',
+    region: 'US',
+    price: '',
+    quality: '',
+  })
+  const [showAddSource, setShowAddSource] = useState(false)
+
+  // Reset form when title changes
+  useEffect(() => {
+    if (title) {
+      setPosterUrl(title.poster_url || '')
+      setBackdropUrl((title as any).backdrop_url || '')
+      setSynopsis((title as any).synopsis || '')
+      setRuntime((title as any).runtime_minutes?.toString() || '')
+      setMpaaRating((title as any).mpaa_rating || '')
+      setDirector((title as any).director || '')
+      setCountry((title as any).country || '')
+      setGenres(title.genres?.join(', ') || '')
+      setImdbRating((title as any).imdb_rating?.toString() || '')
+      setRtScore((title as any).rt_score?.toString() || '')
+      setLetterboxdRating((title as any).letterboxd_rating?.toString() || '')
+      setSources(
+        (title.sources || []).map((s: any) => ({
+          name: s.name || s.source_name || '',
+          type: s.type || 'subscription',
+          url: s.url || s.web_url || '',
+          region: s.region || 'US',
+          price: s.price || '',
+          quality: s.quality || '',
+        }))
+      )
+    }
+  }, [title])
+
+  const handleSave = async () => {
+    if (!title) return
+    setIsLoading(true)
+
+    const updates: any = {
+      id: title.id,
+      poster_url: posterUrl || null,
+      backdrop_url: backdropUrl || null,
+      synopsis: synopsis || null,
+      runtime_minutes: runtime ? parseInt(runtime, 10) : null,
+      mpaa_rating: mpaaRating || null,
+      director: director || null,
+      country: country || null,
+      genres: genres.split(',').map((g) => g.trim()).filter(Boolean),
+      imdb_rating: imdbRating ? parseFloat(imdbRating) : null,
+      rt_score: rtScore ? parseInt(rtScore, 10) : null,
+      letterboxd_rating: letterboxdRating ? parseFloat(letterboxdRating) : null,
+      sources: sources.map((s) => ({
+        source_name: s.name,
+        name: s.name,
+        type: s.type,
+        web_url: s.url,
+        url: s.url,
+        region: s.region,
+        price: s.price || null,
+        quality: s.quality || null,
+      })),
+    }
+
+    await onSave(updates)
+    setIsLoading(false)
+  }
+
+  const handleAddSource = () => {
+    if (!newSource.name || !newSource.url) return
+    setSources([...sources, { ...newSource }])
+    setNewSource({
+      name: '',
+      type: 'subscription',
+      url: '',
+      region: 'US',
+      price: '',
+      quality: '',
+    })
+    setShowAddSource(false)
+  }
+
+  const handleUpdateSource = (index: number, updatedSource: StreamingSource) => {
+    const newSources = [...sources]
+    newSources[index] = updatedSource
+    setSources(newSources)
+    setEditingSourceIndex(null)
+  }
+
+  const handleDeleteSource = (index: number) => {
+    setSources(sources.filter((_, i) => i !== index))
+  }
+
+  if (!isOpen || !title) return null
+
+  const tabs = [
+    { id: 'poster', label: 'Poster & Media', icon: ImageIcon },
+    { id: 'metadata', label: 'Metadata', icon: FileText },
+    { id: 'sources', label: 'Streaming Sources', icon: Tv },
+  ] as const
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+      <div className="relative bg-[#141414] rounded-xl border border-gray-800 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-800">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Manual Enrich</h2>
+            <p className="text-sm text-gray-500">{title.title} ({title.year})</p>
+          </div>
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-gray-800">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'text-purple-400 border-b-2 border-purple-400 -mb-px'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {/* Poster & Media Tab */}
+          {activeTab === 'poster' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Poster URL</label>
+                <input
+                  type="text"
+                  value={posterUrl}
+                  onChange={(e) => setPosterUrl(e.target.value)}
+                  placeholder="https://example.com/poster.jpg"
+                  className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-gray-800 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500"
+                />
+                {posterUrl && (
+                  <div className="mt-3 flex justify-center">
+                    <div className="w-32 h-48 bg-gray-800 rounded-lg overflow-hidden">
+                      <img
+                        src={posterUrl}
+                        alt="Poster preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = ''
+                          e.currentTarget.alt = 'Failed to load'
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Backdrop URL (optional)</label>
+                <input
+                  type="text"
+                  value={backdropUrl}
+                  onChange={(e) => setBackdropUrl(e.target.value)}
+                  placeholder="https://example.com/backdrop.jpg"
+                  className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-gray-800 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500"
+                />
+                {backdropUrl && (
+                  <div className="mt-3">
+                    <div className="w-full h-32 bg-gray-800 rounded-lg overflow-hidden">
+                      <img
+                        src={backdropUrl}
+                        alt="Backdrop preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = ''
+                          e.currentTarget.alt = 'Failed to load'
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Metadata Tab */}
+          {activeTab === 'metadata' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Synopsis</label>
+                <textarea
+                  value={synopsis}
+                  onChange={(e) => setSynopsis(e.target.value)}
+                  placeholder="Enter plot synopsis..."
+                  rows={4}
+                  className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-gray-800 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Runtime (minutes)</label>
+                  <input
+                    type="number"
+                    value={runtime}
+                    onChange={(e) => setRuntime(e.target.value)}
+                    placeholder="90"
+                    className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-gray-800 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">MPAA Rating</label>
+                  <select
+                    value={mpaaRating}
+                    onChange={(e) => setMpaaRating(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-gray-800 text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="">Select rating</option>
+                    <option value="G">G</option>
+                    <option value="PG">PG</option>
+                    <option value="PG-13">PG-13</option>
+                    <option value="R">R</option>
+                    <option value="NC-17">NC-17</option>
+                    <option value="NR">NR (Not Rated)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Director</label>
+                  <input
+                    type="text"
+                    value={director}
+                    onChange={(e) => setDirector(e.target.value)}
+                    placeholder="John Carpenter"
+                    className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-gray-800 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Country</label>
+                  <input
+                    type="text"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="USA"
+                    className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-gray-800 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Genres <span className="text-gray-600">(comma-separated)</span>
+                </label>
+                <input
+                  type="text"
+                  value={genres}
+                  onChange={(e) => setGenres(e.target.value)}
+                  placeholder="Horror, Thriller, Slasher"
+                  className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-gray-800 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">IMDB Rating (0-10)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="10"
+                    value={imdbRating}
+                    onChange={(e) => setImdbRating(e.target.value)}
+                    placeholder="7.5"
+                    className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-gray-800 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">RT Score (0-100)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={rtScore}
+                    onChange={(e) => setRtScore(e.target.value)}
+                    placeholder="85"
+                    className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-gray-800 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Letterboxd (0-5)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    value={letterboxdRating}
+                    onChange={(e) => setLetterboxdRating(e.target.value)}
+                    placeholder="3.8"
+                    className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-gray-800 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Streaming Sources Tab */}
+          {activeTab === 'sources' && (
+            <div className="space-y-4">
+              {/* Existing sources list */}
+              {sources.length > 0 && (
+                <div className="space-y-2">
+                  {sources.map((source, index) => (
+                    <div
+                      key={index}
+                      className="bg-[#1a1a1a] border border-gray-800 rounded-lg p-3"
+                    >
+                      {editingSourceIndex === index ? (
+                        // Edit mode
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <input
+                              type="text"
+                              value={source.name}
+                              onChange={(e) =>
+                                handleUpdateSource(index, { ...source, name: e.target.value })
+                              }
+                              placeholder="Service name"
+                              className="px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                            />
+                            <select
+                              value={source.type}
+                              onChange={(e) =>
+                                handleUpdateSource(index, {
+                                  ...source,
+                                  type: e.target.value as StreamingSource['type'],
+                                })
+                              }
+                              className="px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                            >
+                              <option value="subscription">Subscription</option>
+                              <option value="free">Free</option>
+                              <option value="rent">Rent</option>
+                              <option value="buy">Buy</option>
+                            </select>
+                          </div>
+                          <input
+                            type="text"
+                            value={source.url}
+                            onChange={(e) =>
+                              handleUpdateSource(index, { ...source, url: e.target.value })
+                            }
+                            placeholder="Deep link URL"
+                            className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                          />
+                          <div className="grid grid-cols-3 gap-3">
+                            <input
+                              type="text"
+                              value={source.region}
+                              onChange={(e) =>
+                                handleUpdateSource(index, { ...source, region: e.target.value })
+                              }
+                              placeholder="Region"
+                              className="px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                            />
+                            <input
+                              type="text"
+                              value={source.price || ''}
+                              onChange={(e) =>
+                                handleUpdateSource(index, { ...source, price: e.target.value })
+                              }
+                              placeholder="Price"
+                              className="px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                            />
+                            <input
+                              type="text"
+                              value={source.quality || ''}
+                              onChange={(e) =>
+                                handleUpdateSource(index, { ...source, quality: e.target.value })
+                              }
+                              placeholder="Quality"
+                              className="px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                            />
+                          </div>
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => setEditingSourceIndex(null)}
+                              className="px-3 py-1 text-sm text-purple-400 hover:text-purple-300"
+                            >
+                              Done
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        // View mode
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-white">{source.name}</span>
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-xs ${
+                                  source.type === 'subscription'
+                                    ? 'bg-purple-600/20 text-purple-400'
+                                    : source.type === 'free'
+                                    ? 'bg-green-600/20 text-green-400'
+                                    : source.type === 'rent'
+                                    ? 'bg-yellow-600/20 text-yellow-400'
+                                    : 'bg-blue-600/20 text-blue-400'
+                                }`}
+                              >
+                                {source.type}
+                              </span>
+                              {source.price && (
+                                <span className="text-xs text-gray-500">{source.price}</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1 truncate max-w-[300px]">
+                              {source.url}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setEditingSourceIndex(index)}
+                              className="p-1.5 rounded hover:bg-gray-800 text-gray-400 hover:text-white"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSource(index)}
+                              className="p-1.5 rounded hover:bg-red-600/20 text-gray-400 hover:text-red-400"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add new source */}
+              {showAddSource ? (
+                <div className="bg-[#1a1a1a] border border-gray-800 rounded-lg p-4 space-y-3">
+                  <h4 className="text-sm font-medium text-white">Add New Source</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Service Name *</label>
+                      <input
+                        type="text"
+                        value={newSource.name}
+                        onChange={(e) => setNewSource({ ...newSource, name: e.target.value })}
+                        placeholder="Netflix, Shudder, etc."
+                        className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Type</label>
+                      <select
+                        value={newSource.type}
+                        onChange={(e) =>
+                          setNewSource({
+                            ...newSource,
+                            type: e.target.value as StreamingSource['type'],
+                          })
+                        }
+                        className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                      >
+                        <option value="subscription">Subscription</option>
+                        <option value="free">Free</option>
+                        <option value="rent">Rent</option>
+                        <option value="buy">Buy</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Deep Link URL *</label>
+                    <input
+                      type="text"
+                      value={newSource.url}
+                      onChange={(e) => setNewSource({ ...newSource, url: e.target.value })}
+                      placeholder="https://www.netflix.com/title/..."
+                      className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Region</label>
+                      <input
+                        type="text"
+                        value={newSource.region}
+                        onChange={(e) => setNewSource({ ...newSource, region: e.target.value })}
+                        placeholder="US"
+                        className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Price</label>
+                      <input
+                        type="text"
+                        value={newSource.price || ''}
+                        onChange={(e) => setNewSource({ ...newSource, price: e.target.value })}
+                        placeholder="$3.99"
+                        className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Quality</label>
+                      <input
+                        type="text"
+                        value={newSource.quality || ''}
+                        onChange={(e) => setNewSource({ ...newSource, quality: e.target.value })}
+                        placeholder="HD, 4K"
+                        className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setShowAddSource(false)}
+                      className="px-3 py-1.5 text-sm text-gray-400 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleAddSource}
+                      disabled={!newSource.name || !newSource.url}
+                      className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Add Source
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAddSource(true)}
+                  className="w-full py-3 border-2 border-dashed border-gray-700 rounded-lg text-gray-400 hover:text-white hover:border-purple-500 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Streaming Source
+                </button>
+              )}
+
+              {sources.length === 0 && !showAddSource && (
+                <p className="text-center text-gray-500 text-sm py-4">
+                  No streaming sources yet. Click &quot;Add Streaming Source&quot; to add one.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 p-4 border-t border-gray-800">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isLoading}
+            className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50 flex items-center gap-2"
+          >
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================
 // Main Page Component
 // ============================================
 export default function AdminTitlesPage() {
@@ -947,6 +1585,7 @@ export default function AdminTitlesPage() {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [enrichModalOpen, setEnrichModalOpen] = useState(false)
   const [selectedTitle, setSelectedTitle] = useState<Title | null>(null)
 
   // Filter titles
@@ -1112,6 +1751,49 @@ export default function AdminTitlesPage() {
     // Refetch titles from database after import
     console.log('Import completed:', results)
     await fetchTitles()
+  }
+
+  const handleOpenEnrichModal = async (title: Title) => {
+    // Fetch full record from Supabase to get all fields
+    const { data } = await supabase
+      .from('availability_cards')
+      .select('*')
+      .eq('id', title.id)
+      .single()
+
+    setSelectedTitle(data ? mapDbRowToTitle(data) : title)
+    setEnrichModalOpen(true)
+  }
+
+  const handleManualEnrichSave = async (updates: Partial<Title> & { id: string }) => {
+    try {
+      const response = await fetch('/api/admin/manual-enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save')
+      }
+
+      // Update local state with the returned data
+      const { id } = updates
+      setTitles(
+        titles.map((t) =>
+          t.id === id ? { ...t, ...data.data } : t
+        )
+      )
+
+      setEnrichModalOpen(false)
+      setSelectedTitle(null)
+      alert('Title updated successfully!')
+    } catch (err) {
+      console.error('Error saving manual enrichment:', err)
+      alert(`Failed to save: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    }
   }
 
   return (
@@ -1319,10 +2001,17 @@ export default function AdminTitlesPage() {
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
+                        onClick={() => handleOpenEnrichModal(title)}
+                        className="p-1.5 rounded hover:bg-purple-600/20 text-gray-400 hover:text-purple-400 transition-colors"
+                        title="Manual Enrich"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleEnrichTitle(title.id)}
                         disabled={enrichingId === title.id}
                         className="p-1.5 rounded hover:bg-blue-600/20 text-gray-400 hover:text-blue-400 transition-colors disabled:opacity-50"
-                        title="Enrich from OMDB"
+                        title="Auto Enrich (OMDB)"
                       >
                         <Download
                           className={`w-4 h-4 ${enrichingId === title.id ? 'animate-pulse' : ''}`}
@@ -1415,6 +2104,16 @@ export default function AdminTitlesPage() {
           setSelectedTitle(null)
         }}
         onConfirm={handleDeleteTitle}
+      />
+
+      <ManualEnrichModal
+        isOpen={enrichModalOpen}
+        title={selectedTitle}
+        onClose={() => {
+          setEnrichModalOpen(false)
+          setSelectedTitle(null)
+        }}
+        onSave={handleManualEnrichSave}
       />
     </div>
   )
