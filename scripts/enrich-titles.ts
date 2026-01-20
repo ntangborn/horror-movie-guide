@@ -10,12 +10,14 @@
  *   npm run enrich -- --limit 50      # Enrich up to 50 titles
  *   npm run enrich -- --dry-run       # Preview what would be enriched
  *   npm run enrich -- --omdb-only     # Only fetch OMDB data (no Watchmode credits)
+ *   npm run enrich -- --watchmode-only # Only fetch Watchmode data (skip OMDB)
  *   npm run enrich -- --in-lists      # Only enrich titles in published curated lists
  *
  * Examples:
  *   npm run enrich -- --in-lists --limit 200   # Enrich all titles in lists (up to 200)
  *   npm run enrich -- --in-lists --omdb-only   # Get posters for list titles only
  *   npm run enrich -- --in-lists --dry-run     # Preview what list titles need enrichment
+ *   npm run enrich -- --watchmode-only --limit 1000  # Just get streaming sources
  *
  * Credit Budget (1000 Watchmode credits):
  * - Each search by IMDB ID: 1 credit
@@ -56,6 +58,7 @@ interface Args {
   limit: number
   dryRun: boolean
   omdbOnly: boolean
+  watchmodeOnly: boolean
   inLists: boolean
 }
 
@@ -65,6 +68,7 @@ function parseArgs(): Args {
     limit: DEFAULT_LIMIT,
     dryRun: false,
     omdbOnly: false,
+    watchmodeOnly: false,
     inLists: false,
   }
 
@@ -76,6 +80,8 @@ function parseArgs(): Args {
       result.dryRun = true
     } else if (args[i] === '--omdb-only') {
       result.omdbOnly = true
+    } else if (args[i] === '--watchmode-only') {
+      result.watchmodeOnly = true
     } else if (args[i] === '--in-lists') {
       result.inLists = true
     }
@@ -94,6 +100,7 @@ interface TitleToEnrich {
   poster_url: string | null
   sources: object[] | null
   watchmode_id: string | null
+  availability_checked_at: string | null
 }
 
 interface EnrichmentStats {
@@ -251,12 +258,13 @@ async function getWatchmodeSources(watchmodeId: number): Promise<WatchmodeSource
 }
 
 /**
- * Check if a title needs enrichment (missing poster OR missing/empty sources)
+ * Check if a title needs enrichment (missing BOTH poster AND sources - not previously enriched)
  */
 function needsEnrichment(title: TitleToEnrich): boolean {
   const needsPoster = !title.poster_url || title.poster_url === ''
   const needsSources = !title.sources || !Array.isArray(title.sources) || title.sources.length === 0
-  return needsPoster || needsSources
+  // Only enrich if BOTH are missing (title hasn't been enriched at all)
+  return needsPoster && needsSources
 }
 
 /**
@@ -285,9 +293,50 @@ async function getCardIdsInLists(): Promise<Set<string>> {
 }
 
 /**
+ * Fetch all titles from database with pagination
+ */
+async function fetchAllTitles(): Promise<TitleToEnrich[]> {
+  const allData: TitleToEnrich[] = []
+  const pageSize = 1000
+  let offset = 0
+  let hasMore = true
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('availability_cards')
+      .select('id, imdb_id, title, year, featured, poster_url, sources, watchmode_id, availability_checked_at')
+      .range(offset, offset + pageSize - 1)
+
+    if (error) {
+      console.error('Error fetching titles:', error.message)
+      break
+    }
+
+    if (data && data.length > 0) {
+      allData.push(...(data as any[]))
+      offset += data.length
+      hasMore = data.length === pageSize
+      process.stdout.write(`\r   Fetched ${allData.length} titles...`)
+    } else {
+      hasMore = false
+    }
+  }
+  console.log('')
+  return allData
+}
+
+/**
+ * Check if a title has never been checked for enrichment
+ */
+function neverChecked(title: any): boolean {
+  // If watchmode_id is set OR availability_checked_at is set, it was already processed
+  return !title.watchmode_id && !title.availability_checked_at
+}
+
+/**
  * Query database for titles that need enrichment
  * Prioritizes: Featured > Recent (2020-2026) > Classics
- * Only returns titles that actually need enrichment (missing poster or sources)
+ * Only returns titles that have NEVER been checked and are missing both poster and sources
  */
 async function getTitlesToEnrich(limit: number, inListsOnly: boolean = false): Promise<TitleToEnrich[]> {
   // If --in-lists flag, only get titles that appear in curated lists
@@ -301,76 +350,38 @@ async function getTitlesToEnrich(limit: number, inListsOnly: boolean = false): P
     }
   }
 
+  // Fetch ALL titles with pagination
+  const allTitles = await fetchAllTitles()
+  console.log(`   Total titles in database: ${allTitles.length}`)
+
   // Helper to check if title should be included
   const shouldInclude = (title: TitleToEnrich): boolean => {
+    // Must have never been checked
+    if (!neverChecked(title)) return false
+    // Must need enrichment (missing both poster AND sources)
     if (!needsEnrichment(title)) return false
+    // If in-lists mode, must be in a list
     if (listCardIds && !listCardIds.has(title.id)) return false
     return true
   }
 
-  // Fetch more titles than needed since we'll filter in memory
-  const fetchLimit = inListsOnly ? 1000 : limit * 3
+  // Filter to titles needing enrichment
+  const needingEnrichment = allTitles.filter(shouldInclude)
+  console.log(`   Titles never checked & needing enrichment: ${needingEnrichment.length}`)
 
-  // First, get featured titles
-  const { data: featured, error: featuredError } = await supabase
-    .from('availability_cards')
-    .select('id, imdb_id, title, year, featured, poster_url, sources, watchmode_id')
-    .eq('featured', true)
-    .limit(fetchLimit)
+  // Separate by category for prioritization
+  const featured = needingEnrichment.filter((t) => t.featured)
+  const recent = needingEnrichment.filter((t) => !t.featured && t.year >= 2020)
+  const classics = needingEnrichment.filter((t) => !t.featured && t.year < 2020)
 
-  if (featuredError) {
-    console.error('Error fetching featured titles:', featuredError.message)
-  }
+  // Sort recent by year descending, classics by year descending
+  recent.sort((a, b) => b.year - a.year)
+  classics.sort((a, b) => b.year - a.year)
 
-  // Filter to only those needing enrichment (and in lists if flag set)
-  const featuredNeedingEnrichment = (featured || []).filter(shouldInclude)
-  const featuredIds = new Set(featuredNeedingEnrichment.map((t) => t.id))
-  const remaining = limit - featuredNeedingEnrichment.length
+  // Combine in priority order and limit
+  const result = [...featured, ...recent, ...classics].slice(0, limit)
 
-  if (remaining <= 0) {
-    return featuredNeedingEnrichment.slice(0, limit)
-  }
-
-  // Next, get recent releases (2020-2026)
-  const { data: recent, error: recentError } = await supabase
-    .from('availability_cards')
-    .select('id, imdb_id, title, year, featured, poster_url, sources, watchmode_id')
-    .gte('year', 2020)
-    .lte('year', 2026)
-    .order('year', { ascending: false })
-    .limit(fetchLimit)
-
-  if (recentError) {
-    console.error('Error fetching recent titles:', recentError.message)
-  }
-
-  const recentFiltered = (recent || [])
-    .filter((t) => !featuredIds.has(t.id) && shouldInclude(t))
-    .slice(0, remaining)
-  const recentIds = new Set(recentFiltered.map((t) => t.id))
-  const stillRemaining = remaining - recentFiltered.length
-
-  if (stillRemaining <= 0) {
-    return [...featuredNeedingEnrichment.slice(0, limit - recentFiltered.length), ...recentFiltered]
-  }
-
-  // Finally, get classics (older titles)
-  const { data: classics, error: classicsError } = await supabase
-    .from('availability_cards')
-    .select('id, imdb_id, title, year, featured, poster_url, sources, watchmode_id')
-    .lt('year', 2020)
-    .order('year', { ascending: false })
-    .limit(fetchLimit)
-
-  if (classicsError) {
-    console.error('Error fetching classic titles:', classicsError.message)
-  }
-
-  const classicsFiltered = (classics || [])
-    .filter((t) => !featuredIds.has(t.id) && !recentIds.has(t.id) && shouldInclude(t))
-    .slice(0, stillRemaining)
-
-  return [...featuredNeedingEnrichment, ...recentFiltered, ...classicsFiltered].slice(0, limit)
+  return result
 }
 
 /**
@@ -411,12 +422,16 @@ async function enrich(args: Args) {
     console.log('\n📽️  OMDB ONLY MODE - Skipping Watchmode API calls\n')
   }
 
+  if (args.watchmodeOnly) {
+    console.log('\n📺 WATCHMODE ONLY MODE - Skipping OMDB API calls (preserving daily quota)\n')
+  }
+
   if (args.inLists) {
     console.log('\n📋 IN-LISTS MODE - Only enriching titles that appear in published curated lists\n')
   }
 
   // Check API keys
-  if (!OMDB_API_KEY) {
+  if (!OMDB_API_KEY && !args.watchmodeOnly) {
     console.error('\n❌ OMDB_API_KEY is not configured')
     process.exit(1)
   }
@@ -493,8 +508,8 @@ async function enrich(args: Args) {
       `\r  [${i + 1}/${titles.length}] ${title.title.substring(0, 30).padEnd(30)} `
     )
 
-    // Fetch from OMDB if missing poster
-    if (!title.poster_url) {
+    // Fetch from OMDB if missing poster (skip if --watchmode-only)
+    if (!title.poster_url && !args.watchmodeOnly) {
       const omdbData = await fetchFromOMDB(title.imdb_id)
       await sleep(OMDB_DELAY_MS)
 
@@ -546,6 +561,8 @@ async function enrich(args: Args) {
       const searchResult = await searchWatchmodeByImdb(title.imdb_id)
       await sleep(WATCHMODE_DELAY_MS)
 
+      const now = new Date().toISOString()
+
       if (searchResult) {
         stats.watchmodeFound++
         updates.watchmode_id = searchResult.id.toString()
@@ -559,7 +576,6 @@ async function enrich(args: Args) {
         await sleep(WATCHMODE_DELAY_MS)
 
         if (sources.length > 0) {
-          const now = new Date().toISOString()
           updates.sources = sources.map((s) => ({
             service: s.name,
             service_id: s.source_id.toString(),
@@ -570,16 +586,19 @@ async function enrich(args: Args) {
             region: s.region,
             last_verified: now,
           }))
-          updates.availability_checked_at = now
           enrichedSomething = true
         }
+        // Mark as checked even if no sources found
+        updates.availability_checked_at = now
       } else {
         stats.watchmodeNotFound++
+        // Mark as checked so we don't retry titles not in Watchmode
+        updates.availability_checked_at = now
       }
     }
 
-    // Update database if we enriched something
-    if (enrichedSomething && Object.keys(updates).length > 0) {
+    // Update database if we have any updates (including just marking as checked)
+    if (Object.keys(updates).length > 0) {
       const success = await updateTitle(title.id, updates)
       if (success) {
         stats.databaseUpdates++
