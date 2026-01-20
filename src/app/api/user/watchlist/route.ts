@@ -1,10 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * Create authenticated Supabase client for auth and database operations.
- * Uses RLS (Row Level Security) to ensure users can only access their own data.
+ * Create authenticated Supabase client for checking auth
  */
 async function createAuthClient() {
   const cookieStore = await cookies()
@@ -23,11 +23,23 @@ async function createAuthClient() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // Ignore errors in Route Handlers (cookies are read-only in some contexts)
+            // Ignore errors in Route Handlers
           }
         },
       },
     }
+  )
+}
+
+/**
+ * Service client for database operations (bypasses RLS)
+ * Note: We use this because user_list_items.user_id references users.id,
+ * which may differ from auth.uid(). The API validates auth separately.
+ */
+function createDbClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!
   )
 }
 
@@ -37,10 +49,10 @@ async function createAuthClient() {
  */
 export async function GET() {
   try {
-    const supabase = await createAuthClient()
+    const authClient = await createAuthClient()
 
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
@@ -49,8 +61,9 @@ export async function GET() {
       )
     }
 
-    // Use authenticated client with RLS for database operations
-    // RLS policies ensure users can only access their own data
+    // Use service client for database operations
+    const supabase = createDbClient()
+
     const { data: items, error } = await supabase
       .from('user_list_items')
       .select(`
@@ -114,10 +127,10 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createAuthClient()
+    const authClient = await createAuthClient()
 
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
@@ -136,7 +149,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Use authenticated client with RLS for database operations
+    // Use service client for database operations
+    const supabase = createDbClient()
+
     // Get current max position
     const { data: maxPosData } = await supabase
       .from('user_list_items')
@@ -192,10 +207,10 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createAuthClient()
+    const authClient = await createAuthClient()
 
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
@@ -214,7 +229,9 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Use authenticated client with RLS for database operations
+    // Use service client for database operations
+    const supabase = createDbClient()
+
     // Delete from user_list_items
     const { error } = await supabase
       .from('user_list_items')
@@ -247,10 +264,10 @@ export async function DELETE(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createAuthClient()
+    const authClient = await createAuthClient()
 
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
@@ -269,7 +286,9 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    // Use authenticated client with RLS for database operations
+    // Use service client for database operations
+    const supabase = createDbClient()
+
     // Update positions for each item
     const updates = items.map(({ cardId, position }: { cardId: string; position: number }) =>
       supabase
