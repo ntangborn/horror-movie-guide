@@ -896,12 +896,15 @@ export default function AdminListsPage() {
   const bulkToggleFeatured = async (featured: boolean) => {
     try {
       const ids = Array.from(selectedIds)
-      const { error: updateError } = await supabase
-        .from('curated_lists')
-        .update({ featured, updated_at: new Date().toISOString() })
-        .in('id', ids)
 
-      if (updateError) throw updateError
+      // Update each list via API
+      await Promise.all(ids.map(id =>
+        fetch('/api/admin/lists', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, featured }),
+        })
+      ))
 
       setLists(
         lists.map((l) =>
@@ -917,12 +920,15 @@ export default function AdminListsPage() {
   const bulkTogglePublished = async (published: boolean) => {
     try {
       const ids = Array.from(selectedIds)
-      const { error: updateError } = await supabase
-        .from('curated_lists')
-        .update({ published, updated_at: new Date().toISOString() })
-        .in('id', ids)
 
-      if (updateError) throw updateError
+      // Update each list via API
+      await Promise.all(ids.map(id =>
+        fetch('/api/admin/lists', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, published }),
+        })
+      ))
 
       setLists(
         lists.map((l) =>
@@ -938,18 +944,23 @@ export default function AdminListsPage() {
   const bulkDelete = async () => {
     try {
       const ids = Array.from(selectedIds)
-      const { error: deleteError } = await supabase
-        .from('curated_lists')
-        .delete()
-        .in('id', ids)
 
-      if (deleteError) throw deleteError
+      const response = await fetch('/api/admin/lists', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete lists')
+      }
 
       setLists(lists.filter((l) => !selectedIds.has(l.id)))
       setSelectedIds(new Set())
     } catch (err) {
       console.error('Error bulk deleting:', err)
-      alert('Failed to delete lists. Please try again.')
+      alert(err instanceof Error ? err.message : 'Failed to delete lists. Please try again.')
     }
   }
 
@@ -967,10 +978,12 @@ export default function AdminListsPage() {
       if (existing) {
         console.log('Previous card count:', existing.cards?.length)
 
-        // Update existing list
-        const { error: updateError, data } = await supabase
-          .from('curated_lists')
-          .update({
+        // Update existing list via API
+        const response = await fetch('/api/admin/lists', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: list.id,
             title: list.title,
             slug: list.slug,
             description: list.description,
@@ -978,41 +991,44 @@ export default function AdminListsPage() {
             cards: uniqueCards,
             featured: list.featured,
             published: list.published,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', list.id)
-          .select()
+          }),
+        })
 
-        if (updateError) {
-          console.error('Update error:', updateError)
-          throw updateError
+        const result = await response.json()
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to update list')
         }
 
-        console.log('List saved successfully:', data)
+        console.log('List saved successfully:', result.list)
         console.log('New card count:', uniqueCards.length)
       } else {
-        // Insert new list
-        const { error: insertError } = await supabase
-          .from('curated_lists')
-          .insert({
+        // Insert new list via API
+        const response = await fetch('/api/admin/lists', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             title: list.title,
             slug: list.slug,
             description: list.description,
             cover_image: list.cover_image,
             cards: uniqueCards,
-            type: 'editorial',
-            author: 'Admin',
             featured: list.featured,
             published: list.published,
-          })
+          }),
+        })
 
-        if (insertError) throw insertError
+        const result = await response.json()
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create list')
+        }
+
+        console.log('List created successfully:', result.list)
       }
 
       await fetchLists()
     } catch (err) {
       console.error('Error saving list:', err)
-      alert('Failed to save list. Please try again.')
+      alert(err instanceof Error ? err.message : 'Failed to save list. Please try again.')
     }
   }
 
@@ -1024,15 +1040,19 @@ export default function AdminListsPage() {
 
   const handleToggleFeatured = async (list: CuratedList) => {
     try {
-      const { error: updateError } = await supabase
-        .from('curated_lists')
-        .update({
+      const response = await fetch('/api/admin/lists', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: list.id,
           featured: !list.featured,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', list.id)
+        }),
+      })
 
-      if (updateError) throw updateError
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update list')
+      }
 
       setLists(
         lists.map((l) =>
@@ -1046,15 +1066,19 @@ export default function AdminListsPage() {
 
   const handleTogglePublished = async (list: CuratedList) => {
     try {
-      const { error: updateError } = await supabase
-        .from('curated_lists')
-        .update({
+      const response = await fetch('/api/admin/lists', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: list.id,
           published: !list.published,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', list.id)
+        }),
+      })
 
-      if (updateError) throw updateError
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update list')
+      }
 
       setLists(
         lists.map((l) =>
