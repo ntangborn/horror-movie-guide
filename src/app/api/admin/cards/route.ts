@@ -61,17 +61,38 @@ export async function GET(request: NextRequest) {
     // Use admin client for database operations (bypasses RLS)
     const supabase = createAdminClient()
 
-    const { data, error } = await supabase
-      .from('availability_cards')
-      .select('id, title, year, poster_url')
-      .order('title')
+    // Fetch all cards using pagination (Supabase default limit is 1000)
+    const allCards: any[] = []
+    const pageSize = 1000
+    let page = 0
+    let hasMore = true
 
-    if (error) {
-      console.error('Error fetching cards:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    while (hasMore) {
+      const from = page * pageSize
+      const to = from + pageSize - 1
+
+      const { data, error } = await supabase
+        .from('availability_cards')
+        .select('id, title, year, poster_url')
+        .order('title')
+        .range(from, to)
+
+      if (error) {
+        console.error('Error fetching cards:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      if (data && data.length > 0) {
+        allCards.push(...data)
+        hasMore = data.length === pageSize
+        page++
+      } else {
+        hasMore = false
+      }
     }
 
-    return NextResponse.json({ cards: data || [] })
+    console.log(`Fetched ${allCards.length} total cards`)
+    return NextResponse.json({ cards: allCards })
   } catch (error) {
     console.error('Fetch cards error:', error)
     return NextResponse.json({ error: 'Failed to fetch cards' }, { status: 500 })
