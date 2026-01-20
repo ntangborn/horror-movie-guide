@@ -47,6 +47,33 @@ function createDbClient() {
  * GET /api/user/watchlist
  * Get all watchlist items for the current user
  */
+/**
+ * Get the internal user ID from the users table based on auth user
+ */
+async function getInternalUserId(supabase: ReturnType<typeof createDbClient>, authUser: { id: string; email?: string }): Promise<string | null> {
+  // First try to find by auth user ID (if users.id matches auth.uid)
+  const { data: byId } = await supabase
+    .from('users')
+    .select('id')
+    .eq('id', authUser.id)
+    .single()
+
+  if (byId) return byId.id
+
+  // Fallback: find by email
+  if (authUser.email) {
+    const { data: byEmail } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', authUser.email)
+      .single()
+
+    if (byEmail) return byEmail.id
+  }
+
+  return null
+}
+
 export async function GET() {
   try {
     const authClient = await createAuthClient()
@@ -63,6 +90,15 @@ export async function GET() {
 
     // Use service client for database operations
     const supabase = createDbClient()
+
+    // Get internal user ID
+    const userId = await getInternalUserId(supabase, user)
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
 
     const { data: items, error } = await supabase
       .from('user_list_items')
@@ -84,7 +120,7 @@ export async function GET() {
           synopsis
         )
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('list_type', 'watchlist')
       .order('position', { ascending: true, nullsFirst: false })
       .order('added_at', { ascending: false })
@@ -152,11 +188,20 @@ export async function POST(request: NextRequest) {
     // Use service client for database operations
     const supabase = createDbClient()
 
+    // Get internal user ID
+    const userId = await getInternalUserId(supabase, user)
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
     // Get current max position
     const { data: maxPosData } = await supabase
       .from('user_list_items')
       .select('position')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('list_type', 'watchlist')
       .order('position', { ascending: false, nullsFirst: false })
       .limit(1)
@@ -168,7 +213,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('user_list_items')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         card_id: cardId,
         list_type: 'watchlist',
         position: nextPosition,
@@ -232,11 +277,20 @@ export async function DELETE(request: NextRequest) {
     // Use service client for database operations
     const supabase = createDbClient()
 
+    // Get internal user ID
+    const userId = await getInternalUserId(supabase, user)
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
     // Delete from user_list_items
     const { error } = await supabase
       .from('user_list_items')
       .delete()
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('card_id', cardId)
       .eq('list_type', 'watchlist')
 
@@ -289,12 +343,21 @@ export async function PATCH(request: NextRequest) {
     // Use service client for database operations
     const supabase = createDbClient()
 
+    // Get internal user ID
+    const userId = await getInternalUserId(supabase, user)
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
     // Update positions for each item
     const updates = items.map(({ cardId, position }: { cardId: string; position: number }) =>
       supabase
         .from('user_list_items')
         .update({ position })
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('card_id', cardId)
         .eq('list_type', 'watchlist')
     )
