@@ -35,6 +35,32 @@ interface ListCard {
   poster_url: string | null
 }
 
+// Poster thumbnail component with error handling
+function PosterThumbnail({ url, alt, size = 'sm' }: { url: string | null; alt: string; size?: 'sm' | 'md' }) {
+  const [hasError, setHasError] = useState(false)
+  const dimensions = size === 'sm' ? 'w-8 h-11' : 'w-10 h-14'
+  const iconSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'
+
+  if (!url || hasError) {
+    return (
+      <div className={`${dimensions} bg-gray-800 rounded flex items-center justify-center flex-shrink-0`}>
+        <Film className={`${iconSize} text-gray-600`} />
+      </div>
+    )
+  }
+
+  return (
+    <div className={`${dimensions} bg-gray-800 rounded flex-shrink-0 overflow-hidden`}>
+      <img
+        src={url}
+        alt={alt}
+        className="w-full h-full object-cover"
+        onError={() => setHasError(true)}
+      />
+    </div>
+  )
+}
+
 interface CuratedList {
   id: string
   title: string
@@ -468,20 +494,7 @@ function EditCardsModal({
                   >
                     <GripVertical className="w-5 h-5 text-gray-600 flex-shrink-0" />
                     <span className="text-gray-500 font-mono text-sm w-6">{index + 1}</span>
-                    <div className="w-10 h-14 bg-gray-800 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {card.poster_url ? (
-                        <img
-                          src={card.poster_url}
-                          alt={card.title}
-                          className="w-full h-full rounded object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none'
-                            e.currentTarget.nextElementSibling?.classList.remove('hidden')
-                          }}
-                        />
-                      ) : null}
-                      <Film className={`w-5 h-5 text-gray-600 ${card.poster_url ? 'hidden' : ''}`} />
-                    </div>
+                    <PosterThumbnail url={card.poster_url} alt={card.title} size="md" />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-white truncate">{card.title}</p>
                       <p className="text-sm text-gray-500">{card.year}</p>
@@ -520,20 +533,7 @@ function EditCardsModal({
                     onClick={() => handleAddCard(card)}
                     className="w-full flex items-center gap-3 p-2 rounded-lg bg-[#1a1a1a] border border-gray-800 hover:border-purple-500 transition-colors text-left"
                   >
-                    <div className="w-8 h-11 bg-gray-800 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {card.poster_url ? (
-                        <img
-                          src={card.poster_url}
-                          alt={card.title}
-                          className="w-full h-full object-cover rounded"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none'
-                            e.currentTarget.nextElementSibling?.classList.remove('hidden')
-                          }}
-                        />
-                      ) : null}
-                      <Film className={`w-4 h-4 text-gray-600 ${card.poster_url ? 'hidden' : ''}`} />
-                    </div>
+                    <PosterThumbnail url={card.poster_url} alt={card.title} size="sm" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-white truncate">{card.title}</p>
                       <p className="text-xs text-gray-500">{card.year}</p>
