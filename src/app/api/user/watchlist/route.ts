@@ -1,11 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * Create authenticated Supabase client for API routes
+ * Create authenticated Supabase client for checking auth
  */
-async function createApiClient() {
+async function createAuthClient() {
   const cookieStore = await cookies()
 
   return createServerClient(
@@ -31,15 +32,25 @@ async function createApiClient() {
 }
 
 /**
+ * Service client for database operations (bypasses RLS)
+ */
+function createDbClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!
+  )
+}
+
+/**
  * GET /api/user/watchlist
  * Get all watchlist items for the current user
  */
 export async function GET() {
   try {
-    const supabase = await createApiClient()
+    const authClient = await createAuthClient()
 
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
@@ -47,6 +58,9 @@ export async function GET() {
         { status: 401 }
       )
     }
+
+    // Use service client for database operations
+    const supabase = createDbClient()
 
     // Get watchlist items with card data - only select needed columns
     const { data: items, error } = await supabase
@@ -112,10 +126,10 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authClient = await createAuthClient()
 
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
@@ -133,6 +147,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Use service client for database operations
+    const supabase = createDbClient()
 
     // Get current max position
     const { data: maxPosData } = await supabase
@@ -189,10 +206,10 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authClient = await createAuthClient()
 
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
@@ -210,6 +227,9 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Use service client for database operations
+    const supabase = createDbClient()
 
     // Delete from user_list_items
     const { error } = await supabase
@@ -243,10 +263,10 @@ export async function DELETE(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authClient = await createAuthClient()
 
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
@@ -264,6 +284,9 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Use service client for database operations
+    const supabase = createDbClient()
 
     // Update positions for each item
     const updates = items.map(({ cardId, position }: { cardId: string; position: number }) =>
