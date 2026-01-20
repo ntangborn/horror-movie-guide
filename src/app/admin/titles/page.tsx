@@ -1634,18 +1634,19 @@ export default function AdminTitlesPage() {
       try {
         console.log('Attempting to delete title:', selectedTitle.id, selectedTitle.title)
 
-        const { error: deleteError, count } = await supabase
-          .from('availability_cards')
-          .delete()
-          .eq('id', selectedTitle.id)
-          .select()
+        const response = await fetch('/api/admin/delete-title', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: selectedTitle.id }),
+        })
 
-        if (deleteError) {
-          console.error('Delete error from Supabase:', deleteError)
-          throw deleteError
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to delete')
         }
 
-        console.log('Delete successful, rows affected:', count)
+        console.log('Delete successful:', data.deleted_title)
         setTitles(titles.filter((t) => t.id !== selectedTitle.id))
         alert(`Successfully deleted "${selectedTitle.title}"`)
       } catch (err) {
