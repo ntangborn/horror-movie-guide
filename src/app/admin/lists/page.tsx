@@ -836,15 +836,17 @@ export default function AdminListsPage() {
     }
   }, [])
 
-  // Fetch available cards for search
+  // Fetch available cards for search via API (bypasses RLS)
   const fetchAvailableCards = useCallback(async () => {
     try {
-      const { data } = await supabase
-        .from('availability_cards')
-        .select('id, title, year, poster_url')
-        .order('title')
+      const response = await fetch('/api/admin/cards')
+      const result = await response.json()
 
-      setAvailableCards(data || [])
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch cards')
+      }
+
+      setAvailableCards(result.cards || [])
     } catch (err) {
       console.error('Error fetching available cards:', err)
     }
