@@ -228,6 +228,11 @@ function BingeRow({
   const [canScrollRight, setCanScrollRight] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
 
+  // Calculate if we likely have overflow based on card count
+  // This ensures arrows show even before scroll detection kicks in
+  const estimatedContentWidth = row.cards.length * (CARD_WIDTH + CARD_GAP)
+  const likelyHasOverflow = estimatedContentWidth > 600 // Conservative estimate
+
   // Calculate progress
   const watchedCount = row.cards.filter((c) => watchedItems.has(c.id)).length
   const totalCount = row.cards.length
@@ -364,7 +369,7 @@ function BingeRow({
         </div>
 
         {/* Scrollable Cards Area */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-w-0">
           {/* Scroll buttons */}
           {canScrollLeft && (
             <button
@@ -374,22 +379,23 @@ function BingeRow({
               <ChevronLeft className="w-6 h-6" />
             </button>
           )}
-          {canScrollRight && (
+          {/* Show right arrow when there are more cards than visible */}
+          {(row.cards.length > 3 && !canScrollLeft) || canScrollRight ? (
             <button
               onClick={() => scroll('right')}
               className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-purple-600/90 hover:bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-black/50 transition-all hover:scale-110"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
-          )}
+          ) : null}
 
           {/* Gradient fades */}
           {canScrollLeft && (
             <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-[#0a0a0a] to-transparent z-10 pointer-events-none" />
           )}
-          {canScrollRight && (
+          {(row.cards.length > 3 && !canScrollLeft) || canScrollRight ? (
             <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[#0a0a0a] to-transparent z-10 pointer-events-none" />
-          )}
+          ) : null}
 
           {/* Cards container */}
           <div
