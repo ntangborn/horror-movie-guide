@@ -46,6 +46,11 @@ export async function fetchBrowseCards(
     .from('availability_cards')
     .select(BROWSE_COLUMNS, { count: 'exact' })
 
+  // Search query - filter by title
+  if (filters.q) {
+    query = query.ilike('title', `%${filters.q}%`)
+  }
+
   // Genre filter - check if genre is in the genres array (case-insensitive)
   if (filters.genre) {
     // Use ilike with array contains for case-insensitive search

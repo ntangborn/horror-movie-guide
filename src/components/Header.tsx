@@ -200,23 +200,37 @@ export function Header() {
         {/* Search bar (expandable) */}
         {searchOpen && (
           <div className="pb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input
-                type="text"
-                placeholder="Search movies, shows, actors..."
-                autoFocus
-                className="
-                  w-full pl-10 pr-4 py-3 rounded-lg
-                  bg-[#1a1a1a] border border-gray-800 text-white
-                  placeholder:text-gray-600
-                  focus:outline-none focus:border-purple-500
-                "
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') setSearchOpen(false)
-                }}
-              />
-            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                const form = e.target as HTMLFormElement
+                const input = form.elements.namedItem('search') as HTMLInputElement
+                const query = input.value.trim()
+                if (query) {
+                  router.push(`/browse?q=${encodeURIComponent(query)}`)
+                  setSearchOpen(false)
+                }
+              }}
+            >
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <input
+                  type="text"
+                  name="search"
+                  placeholder="Search movies, shows, actors..."
+                  autoFocus
+                  className="
+                    w-full pl-10 pr-4 py-3 rounded-lg
+                    bg-[#1a1a1a] border border-gray-800 text-white
+                    placeholder:text-gray-600
+                    focus:outline-none focus:border-purple-500
+                  "
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') setSearchOpen(false)
+                  }}
+                />
+              </div>
+            </form>
           </div>
         )}
       </div>

@@ -50,6 +50,7 @@ export const SORT_OPTIONS = [
 ] as const
 
 export interface FilterState {
+  q?: string  // Search query
   genre?: string
   decade?: string
   service?: string
@@ -336,6 +337,7 @@ export function FilterBar({ loading, resultCount }: FilterBarProps) {
 
   // Get current filter values from URL
   const filters: FilterState = {
+    q: searchParams.get('q') || undefined,
     genre: searchParams.get('genre') || undefined,
     decade: searchParams.get('decade') || undefined,
     service: searchParams.get('service') || undefined,
@@ -343,7 +345,10 @@ export function FilterBar({ loading, resultCount }: FilterBarProps) {
     sort: searchParams.get('sort') || undefined,
   }
 
-  const activeFilterCount = Object.values(filters).filter(Boolean).length
+  // Count active filters (excluding sort from count, but including search)
+  const activeFilterCount = Object.entries(filters)
+    .filter(([key, value]) => value && key !== 'sort')
+    .length
 
   // Update URL with new filter values
   const updateFilters = useCallback(
@@ -375,6 +380,8 @@ export function FilterBar({ loading, resultCount }: FilterBarProps) {
   // Get label for active filter
   const getFilterLabel = (type: keyof FilterState, value: string): string => {
     switch (type) {
+      case 'q':
+        return `"${value}"`
       case 'genre':
         return GENRE_OPTIONS.find((o) => o.value === value)?.label || value
       case 'decade':

@@ -17,6 +17,7 @@ function useFilters(): FilterState {
   const searchParams = useSearchParams()
 
   return {
+    q: searchParams.get('q') || undefined,
     genre: searchParams.get('genre') || undefined,
     decade: searchParams.get('decade') || undefined,
     service: searchParams.get('service') || undefined,
