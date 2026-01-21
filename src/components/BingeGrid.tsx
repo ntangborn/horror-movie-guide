@@ -246,15 +246,26 @@ function BingeRow({
   }
 
   useEffect(() => {
-    updateScrollState()
     const ref = scrollRef.current
-    if (ref) {
-      ref.addEventListener('scroll', updateScrollState)
-      window.addEventListener('resize', updateScrollState)
-      return () => {
-        ref.removeEventListener('scroll', updateScrollState)
-        window.removeEventListener('resize', updateScrollState)
-      }
+    if (!ref) return
+
+    // Initial check with small delay to ensure content is rendered
+    const initialCheck = setTimeout(updateScrollState, 100)
+
+    // Use ResizeObserver to detect when content size changes
+    const resizeObserver = new ResizeObserver(() => {
+      updateScrollState()
+    })
+    resizeObserver.observe(ref)
+
+    ref.addEventListener('scroll', updateScrollState)
+    window.addEventListener('resize', updateScrollState)
+
+    return () => {
+      clearTimeout(initialCheck)
+      resizeObserver.disconnect()
+      ref.removeEventListener('scroll', updateScrollState)
+      window.removeEventListener('resize', updateScrollState)
     }
   }, [row.cards])
 
@@ -358,17 +369,17 @@ function BingeRow({
           {canScrollLeft && (
             <button
               onClick={() => scroll('left')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/80 hover:bg-black text-white flex items-center justify-center shadow-lg transition-colors"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-purple-600/90 hover:bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-black/50 transition-all hover:scale-110"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-6 h-6" />
             </button>
           )}
           {canScrollRight && (
             <button
               onClick={() => scroll('right')}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/80 hover:bg-black text-white flex items-center justify-center shadow-lg transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-purple-600/90 hover:bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-black/50 transition-all hover:scale-110"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-6 h-6" />
             </button>
           )}
 
@@ -383,8 +394,12 @@ function BingeRow({
           {/* Cards container */}
           <div
             ref={scrollRef}
-            className="flex gap-3 p-4 overflow-x-auto scrollbar-hide"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            className="flex gap-3 p-4 overflow-x-auto scrollbar-hide scroll-smooth touch-pan-x"
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
+            }}
           >
             {row.cards.map((card, index) => (
               <BingeCard
