@@ -17,6 +17,7 @@ import {
   Shield,
   BarChart3,
   Activity,
+  Youtube,
 } from 'lucide-react'
 
 // Admin emails - in production, this would come from a database or env
@@ -42,6 +43,11 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Titles',
     href: '/admin/titles',
     icon: <Film className="w-5 h-5" />,
+  },
+  {
+    label: 'Trailers',
+    href: '/admin/trailers',
+    icon: <Youtube className="w-5 h-5" />,
   },
   {
     label: 'Lists',

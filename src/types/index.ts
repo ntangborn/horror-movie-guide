@@ -11,6 +11,8 @@ export interface StreamingSource {
   last_verified: string
 }
 
+export type TrailerStatus = 'none' | 'pending' | 'approved' | 'rejected'
+
 export interface AvailabilityCard {
   id: string
   imdb_id: string
@@ -38,6 +40,14 @@ export interface AvailabilityCard {
   created_at: string
   updated_at: string
   availability_checked_at: string
+  // Trailer fields
+  trailer_youtube_id?: string
+  trailer_video_title?: string
+  trailer_channel?: string
+  trailer_embed_code?: string
+  trailer_status?: TrailerStatus
+  trailer_reviewed_at?: string
+  trailer_scraped_at?: string
 }
 
 export interface EPGScheduleItem {

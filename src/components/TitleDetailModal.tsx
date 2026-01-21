@@ -16,6 +16,9 @@ import {
   User,
   ExternalLink,
   Loader2,
+  Play,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { useWatchlist } from '@/hooks/useWatchlist'
 import { POSTER_BLUR_DATA_URL, IMAGE_SIZES } from '@/lib/image-utils'
@@ -398,6 +401,7 @@ export function TitleDetailModal({ card, isOpen, onClose, isEPGItem = false }: T
   const [showListPicker, setShowListPicker] = useState(false)
   const [showReminderPicker, setShowReminderPicker] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [showTrailer, setShowTrailer] = useState(false)
 
   // Check if current card is in watchlist
   const inWatchlist = card ? isInWatchlist(card.id) : false
@@ -427,10 +431,11 @@ export function TitleDetailModal({ card, isOpen, onClose, isEPGItem = false }: T
     }
   }, [isOpen, handleEscape])
 
-  // Reset watched state when card changes
+  // Reset state when card changes
   useEffect(() => {
     if (card) {
       setIsWatched(false)
+      setShowTrailer(false)
     }
   }, [card?.id])
 
@@ -656,6 +661,55 @@ export function TitleDetailModal({ card, isOpen, onClose, isEPGItem = false }: T
                   Synopsis
                 </h3>
                 <p className="text-gray-300 leading-relaxed">{card.synopsis}</p>
+              </div>
+            )}
+
+            {/* Trailer - Only show if approved */}
+            {card.trailer_status === 'approved' && card.trailer_youtube_id && (
+              <div className="mb-6">
+                <button
+                  onClick={() => setShowTrailer(!showTrailer)}
+                  className="
+                    w-full flex items-center justify-between gap-3 p-4 rounded-lg
+                    bg-red-600/20 border border-red-500/30
+                    hover:bg-red-600/30 transition-colors
+                    text-left
+                  "
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-red-600 flex items-center justify-center">
+                      <Play className="w-5 h-5 text-white fill-white" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Watch Trailer</p>
+                      {card.trailer_channel && (
+                        <p className="text-sm text-gray-400">{card.trailer_channel}</p>
+                      )}
+                    </div>
+                  </div>
+                  {showTrailer ? (
+                    <ChevronUp className="w-5 h-5 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                  )}
+                </button>
+
+                {/* Trailer embed - collapsible */}
+                {showTrailer && (
+                  <div className="mt-3 rounded-lg overflow-hidden bg-black">
+                    <div className="aspect-video w-full">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        src={`https://www.youtube.com/embed/${card.trailer_youtube_id}?autoplay=1`}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        title={card.trailer_video_title || `${card.title} Trailer`}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
