@@ -117,28 +117,36 @@ export default function TrailersPage() {
     fetchStats()
   }, [fetchTrailers, fetchStats])
 
-  // Update trailer status
+  // Update trailer status via API
   const updateStatus = async (id: string, newStatus: 'approved' | 'rejected') => {
     setProcessingIds(prev => new Set(prev).add(id))
 
-    const { error } = await supabase
-      .from('availability_cards')
-      .update({
-        trailer_status: newStatus,
-        trailer_reviewed_at: new Date().toISOString(),
+    try {
+      const response = await fetch('/api/admin/trailers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: newStatus }),
       })
-      .eq('id', id)
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to update')
+      }
+    } catch (error) {
+      console.error('Error updating status:', error)
+      setProcessingIds(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      return
+    }
 
     setProcessingIds(prev => {
       const next = new Set(prev)
       next.delete(id)
       return next
     })
-
-    if (error) {
-      console.error('Error updating status:', error)
-      return
-    }
 
     // Optimistic update
     setTrailers(prev =>
@@ -166,13 +174,44 @@ export default function TrailersPage() {
     })
   }
 
-  // Bulk approve
+  // Bulk approve via API
   const bulkApprove = async () => {
     const ids = Array.from(selectedIds)
     if (ids.length === 0) return
 
-    for (const id of ids) {
-      await updateStatus(id, 'approved')
+    // Mark all as processing
+    setProcessingIds(new Set(ids))
+
+    try {
+      const response = await fetch('/api/admin/trailers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, status: 'approved' }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to bulk update')
+      }
+
+      // Update local state
+      setTrailers(prev =>
+        prev.map(t =>
+          ids.includes(t.id) ? { ...t, trailer_status: 'approved' as const } : t
+        )
+      )
+      setSelectedIds(new Set())
+
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        pending: prev.pending - ids.length,
+        approved: prev.approved + ids.length,
+      }))
+    } catch (error) {
+      console.error('Error bulk approving:', error)
+    } finally {
+      setProcessingIds(new Set())
     }
   }
 
