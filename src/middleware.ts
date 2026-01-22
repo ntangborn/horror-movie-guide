@@ -7,6 +7,13 @@ const ADMIN_EMAILS = [
   'admin@example.com',
 ]
 
+// Cookie options for persistent sessions (30 days)
+const COOKIE_OPTIONS = {
+  maxAge: 60 * 60 * 24 * 30,
+  sameSite: 'lax' as const,
+  secure: process.env.NODE_ENV === 'production',
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -21,14 +28,17 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({
             request,
           })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              ...COOKIE_OPTIONS,
+            })
           )
         },
       },

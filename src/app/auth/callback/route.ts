@@ -3,6 +3,13 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// Cookie options for persistent sessions (30 days)
+const COOKIE_OPTIONS = {
+  maxAge: 60 * 60 * 24 * 30,
+  sameSite: 'lax' as const,
+  secure: process.env.NODE_ENV === 'production',
+}
+
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
@@ -24,7 +31,10 @@ export async function GET(request: NextRequest) {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, {
+                ...options,
+                ...COOKIE_OPTIONS,
+              })
             )
           } catch {
             // The `setAll` method was called from a Server Component.
