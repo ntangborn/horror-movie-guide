@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Radio,
   Home,
+  Users,
 } from 'lucide-react'
 import { getCurrentUser, signOut, onAuthStateChange } from '@/lib/auth'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { href: '/home', label: 'Home', icon: Home },
   { href: '/tv-guide', label: 'TV Guide', icon: Radio },
   { href: '/browse', label: 'Browse', icon: Film },
+  { href: '/community', label: 'Community', icon: Users },
   { href: '/binge', label: 'Binge', icon: PlayCircle },
   { href: '/watchlist', label: 'Watchlist', icon: Heart },
 ]

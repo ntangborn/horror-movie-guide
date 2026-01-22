@@ -94,3 +94,20 @@ export interface User {
   created_at: string
   last_active: string
 }
+
+export interface SharedList {
+  id: string
+  user_id: string
+  name: string
+  slug: string
+  description: string | null
+  card_ids: string[]
+  header_image_url: string | null
+  card_count: number
+  is_public: boolean
+  created_at: string
+  updated_at: string
+  // Joined data (optional)
+  user_email?: string
+  cards?: AvailabilityCard[]
+}

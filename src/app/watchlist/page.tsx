@@ -21,10 +21,14 @@ import {
   Loader2,
   ArrowLeft,
   ListX,
+  Share2,
+  Users,
 } from 'lucide-react'
 import { useWatchlist, type WatchlistItem } from '@/hooks/useWatchlist'
+import { useSharedLists } from '@/hooks/useSharedLists'
 import { useTitleModal } from '@/contexts/TitleModalContext'
-import type { AvailabilityCard } from '@/types'
+import { ShareWatchlistModal } from '@/components/community/ShareWatchlistModal'
+import type { AvailabilityCard, SharedList } from '@/types'
 
 /**
  * Format runtime to "Xhr Ym" format
@@ -237,6 +241,74 @@ function WatchlistItemCard({
 }
 
 /**
+ * User's shared list card component
+ */
+function SharedListCard({
+  list,
+  onDelete,
+  isDeleting,
+}: {
+  list: SharedList
+  onDelete: (id: string) => void
+  isDeleting: boolean
+}) {
+  return (
+    <div className="bg-[#1a1a1a] border border-gray-800 rounded-lg overflow-hidden">
+      <div className="flex items-center gap-4 p-4">
+        {/* Thumbnail */}
+        <div className="relative w-16 aspect-[16/9] rounded overflow-hidden bg-[#252525] flex-shrink-0">
+          {list.header_image_url ? (
+            <Image
+              src={list.header_image_url}
+              alt={list.name}
+              fill
+              sizes="64px"
+              className="object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Film className="w-6 h-6 text-gray-600" />
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <Link
+            href={`/community/${list.slug}`}
+            className="font-medium text-white hover:text-purple-400 transition-colors line-clamp-1"
+          >
+            {list.name}
+          </Link>
+          <p className="text-sm text-gray-500">
+            {list.card_count} {list.card_count === 1 ? 'movie' : 'movies'}
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/community/${list.slug}`}
+            className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+            title="View list"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </Link>
+          <button
+            onClick={() => onDelete(list.id)}
+            disabled={isDeleting}
+            className="p-2 rounded-lg bg-gray-800 hover:bg-red-600/20 hover:text-red-400 text-gray-400 transition-colors disabled:opacity-50"
+            title="Delete shared list"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
  * My Watchlist Page
  *
  * Displays user's watchlist with drag-and-drop reordering
@@ -251,8 +323,15 @@ export default function WatchlistPage() {
     reorderWatchlist,
     isRemoving,
   } = useWatchlist()
+  const {
+    sharedLists,
+    isLoading: isLoadingShared,
+    deleteSharedList,
+    isDeleting,
+  } = useSharedLists()
   const { openModal } = useTitleModal()
   const [isReordering, setIsReordering] = useState(false)
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
   const handleDragEnd = useCallback(
     (result: DropResult) => {
@@ -314,12 +393,25 @@ export default function WatchlistPage() {
               </div>
             </div>
 
-            <Link href="/" className="flex items-center gap-2 group">
-              <Ghost className="w-6 h-6 text-purple-500 group-hover:text-purple-400 transition-colors" />
-              <span className="text-sm font-medium text-gray-400 group-hover:text-white transition-colors hidden sm:block">
-                Ghost Guide
-              </span>
-            </Link>
+            <div className="flex items-center gap-3">
+              {/* Share button - only show when signed in with items */}
+              {!isNotAuthenticated && watchlist.length > 0 && (
+                <button
+                  onClick={() => setIsShareModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Share</span>
+                </button>
+              )}
+
+              <Link href="/" className="flex items-center gap-2 group">
+                <Ghost className="w-6 h-6 text-purple-500 group-hover:text-purple-400 transition-colors" />
+                <span className="text-sm font-medium text-gray-400 group-hover:text-white transition-colors hidden sm:block">
+                  Ghost Guide
+                </span>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -392,7 +484,42 @@ export default function WatchlistPage() {
             </DragDropContext>
           </>
         )}
+
+        {/* Shared Lists Section */}
+        {!isLoading && !isNotAuthenticated && sharedLists.length > 0 && (
+          <div className="mt-12 pt-8 border-t border-gray-800">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 rounded-lg bg-purple-600/20 flex items-center justify-center">
+                <Users className="w-4 h-4 text-purple-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-white">Your Shared Lists</h2>
+                <p className="text-sm text-gray-500">
+                  Lists you've shared with the community
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {sharedLists.map((list) => (
+                <SharedListCard
+                  key={list.id}
+                  list={list}
+                  onDelete={deleteSharedList}
+                  isDeleting={isDeleting}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Share Modal */}
+      <ShareWatchlistModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        watchlistCount={watchlist.length}
+      />
     </main>
   )
 }
