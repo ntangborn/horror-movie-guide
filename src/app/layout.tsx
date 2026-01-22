@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 import { Providers } from '@/components/Providers'
 import { Header } from '@/components/Header'
+import { Footer } from '@/components/Footer'
 import { TrackingProvider } from '@/components/TrackingProvider'
 import './globals.css'
 
@@ -92,12 +93,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0a0a] text-white min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0a0a] text-white min-h-screen flex flex-col`}
       >
         <Providers>
           <TrackingProvider>
             <Header />
-            {children}
+            <main className="flex-1">{children}</main>
+            <Footer />
           </TrackingProvider>
         </Providers>
       </body>
