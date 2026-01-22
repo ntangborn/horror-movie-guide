@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  Ghost,
-  Zap,
   Search,
   Menu,
   X,
@@ -79,10 +78,13 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative">
-              <Ghost className="w-8 h-8 text-purple-500 group-hover:text-purple-400 transition-colors" />
-              <Zap className="absolute -top-0.5 -right-0.5 w-3 h-3 text-yellow-400" />
-            </div>
+            <Image
+              src="/ghost-icon-192.png"
+              alt="Ghost Guide"
+              width={36}
+              height={36}
+              className="group-hover:opacity-80 transition-opacity"
+            />
             <span className="text-lg font-bold text-white hidden sm:block">
               Ghost Guide
             </span>

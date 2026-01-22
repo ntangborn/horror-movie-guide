@@ -5,8 +5,6 @@ import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
-  Ghost,
-  Zap,
   Radio,
   Film,
   PlayCircle,
@@ -478,10 +476,13 @@ function HeroSection() {
       {/* Content */}
       <div className="relative px-4 py-8 md:py-12">
         <div className="max-w-[1400px] mx-auto flex items-center gap-4">
-          <div className="relative flex-shrink-0">
-            <Ghost className="w-12 h-12 text-purple-500" />
-            <Zap className="absolute -top-1 -right-1 w-5 h-5 text-yellow-400" />
-          </div>
+          <Image
+            src="/ghost-icon-192.png"
+            alt="Ghost Guide"
+            width={56}
+            height={56}
+            className="flex-shrink-0"
+          />
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-white">
               Ghost Guide
