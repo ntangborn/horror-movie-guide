@@ -84,7 +84,7 @@ export function Header() {
               <Zap className="absolute -top-0.5 -right-0.5 w-3 h-3 text-yellow-400" />
             </div>
             <span className="text-lg font-bold text-white hidden sm:block">
-              Ghosts in the Machine
+              Ghost Guide
             </span>
           </Link>
 

@@ -17,12 +17,12 @@ const geistMono = localFont({
   weight: '100 900',
 })
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ghosts-in-the-machine.vercel.app'
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ghostguide.co'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Ghosts in the Machine - Horror & Sci-Fi TV Guide',
-    template: '%s | Ghosts in the Machine',
+    default: 'Ghost Guide - Horror & Sci-Fi TV Guide',
+    template: '%s | Ghost Guide',
   },
   description:
     'Discover where to stream your favorite horror movies and sci-fi thrillers. Browse 500+ curated titles with streaming availability, ratings, and expert picks. Your ultimate guide to genre entertainment.',
@@ -37,15 +37,15 @@ export const metadata: Metadata = {
     'best horror films',
     'sci-fi streaming',
   ],
-  authors: [{ name: 'Ghosts in the Machine' }],
-  creator: 'Ghosts in the Machine',
+  authors: [{ name: 'Ghost Guide' }],
+  creator: 'Ghost Guide',
   metadataBase: new URL(siteUrl),
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: siteUrl,
-    siteName: 'Ghosts in the Machine',
-    title: 'Ghosts in the Machine - Horror & Sci-Fi TV Guide',
+    siteName: 'Ghost Guide',
+    title: 'Ghost Guide - Horror & Sci-Fi TV Guide',
     description:
       'Discover where to stream your favorite horror movies and sci-fi thrillers. Browse 500+ curated titles with streaming availability, ratings, and expert picks.',
     images: [
@@ -53,13 +53,13 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Ghosts in the Machine - Horror & Sci-Fi TV Guide',
+        alt: 'Ghost Guide - Horror & Sci-Fi TV Guide',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Ghosts in the Machine - Horror & Sci-Fi TV Guide',
+    title: 'Ghost Guide - Horror & Sci-Fi TV Guide',
     description:
       'Discover where to stream your favorite horror movies and sci-fi thrillers. Browse 500+ curated titles with streaming availability and ratings.',
     images: ['/og-image.png'],

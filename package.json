@@ -1,5 +1,5 @@
 {
-  "name": "horror-movie-guide",
+  "name": "ghost-guide",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,8 @@
     "lint": "next lint",
     "seed": "ts-node --project scripts/tsconfig.json scripts/seed-from-csv.ts",
     "seed:lists": "ts-node --project scripts/tsconfig.json scripts/seed-lists.ts",
-    "enrich": "ts-node --project scripts/tsconfig.json scripts/enrich-titles.ts"
+    "enrich": "ts-node --project scripts/tsconfig.json scripts/enrich-titles.ts",
+    "import-scifi": "ts-node --project scripts/tsconfig.json scripts/import-scifi.ts"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

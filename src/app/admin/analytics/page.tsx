@@ -250,7 +250,7 @@ export default function AdminAnalyticsPage() {
             <Link href="/" className="flex items-center gap-2 group">
               <Ghost className="w-6 h-6 text-purple-500 group-hover:text-purple-400 transition-colors" />
               <span className="text-sm font-medium text-gray-400 group-hover:text-white transition-colors hidden sm:block">
-                Ghosts in the Machine
+                Ghost Guide
               </span>
             </Link>
           </div>

@@ -34,12 +34,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   if (!data) {
     return {
-      title: 'List Not Found | Ghosts in the Machine',
+      title: 'List Not Found | Ghost Guide',
     }
   }
 
   return {
-    title: `${data.list.title} | Ghosts in the Machine`,
+    title: `${data.list.title} | Ghost Guide`,
     description: data.list.description,
   }
 }
@@ -217,7 +217,7 @@ export default async function ListPage({ params }: { params: Promise<{ slug: str
             <Link href="/" className="flex items-center gap-3 group">
               <Ghost className="w-8 h-8 text-purple-500 group-hover:text-purple-400 transition-colors" />
               <span className="text-xl font-bold text-white group-hover:text-purple-300 transition-colors">
-                Ghosts in the Machine
+                Ghost Guide
               </span>
             </Link>
 
@@ -309,7 +309,7 @@ export default async function ListPage({ params }: { params: Promise<{ slug: str
       {/* Footer */}
       <footer className="max-w-[1600px] mx-auto px-4 py-8 border-t border-gray-800 text-center">
         <p className="text-gray-700 text-sm">
-          Ghosts in the Machine &copy; {new Date().getFullYear()} | Horror & Sci-Fi TV Guide
+          Ghost Guide &copy; {new Date().getFullYear()} | Horror & Sci-Fi TV Guide
         </p>
       </footer>
     </main>

@@ -484,7 +484,7 @@ function HeroSection() {
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-white">
-              Ghosts in the Machine
+              Ghost Guide
               <span className="text-purple-400 ml-2">Streaming TV Guide</span>
             </h1>
             <p className="text-sm md:text-base text-gray-400 mt-1 max-w-2xl">
@@ -517,7 +517,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="max-w-[1400px] mx-auto px-4 py-8 mt-8 border-t border-gray-800 text-center">
         <p className="text-gray-700 text-sm">
-          Ghosts in the Machine &copy; {new Date().getFullYear()} | Horror & Sci-Fi TV Guide
+          Ghost Guide &copy; {new Date().getFullYear()} | Horror & Sci-Fi TV Guide
         </p>
       </footer>
     </main>

@@ -177,7 +177,7 @@ export default function LoginPage() {
         <Link href="/" className="flex items-center justify-center gap-3 mb-8 group">
           <Ghost className="w-10 h-10 text-purple-500 group-hover:text-purple-400 transition-colors" />
           <span className="text-2xl font-bold text-white group-hover:text-purple-300 transition-colors">
-            Ghosts in the Machine
+            Ghost Guide
           </span>
         </Link>
 

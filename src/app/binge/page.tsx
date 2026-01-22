@@ -258,7 +258,7 @@ export default function BingePage() {
             <Link href="/" className="flex items-center gap-3 group">
               <Ghost className="w-8 h-8 text-purple-500 group-hover:text-purple-400 transition-colors" />
               <span className="text-xl font-bold text-white group-hover:text-purple-300 transition-colors">
-                Ghosts in the Machine
+                Ghost Guide
               </span>
             </Link>
 
@@ -421,7 +421,7 @@ export default function BingePage() {
       {/* Footer */}
       <footer className="max-w-[1600px] mx-auto px-4 py-8 mt-8 border-t border-gray-800 text-center">
         <p className="text-gray-700 text-sm">
-          Ghosts in the Machine &copy; {new Date().getFullYear()} | Horror & Sci-Fi TV Guide
+          Ghost Guide &copy; {new Date().getFullYear()} | Horror & Sci-Fi TV Guide
         </p>
       </footer>
 

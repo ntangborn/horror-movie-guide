@@ -22,7 +22,7 @@ import {
 
 // Admin emails - in production, this would come from a database or env
 const ADMIN_EMAILS = [
-  'admin@ghostsinthemachine.com',
+  'admin@ghostguide.co',
   'demo@admin.com',
   // Add your admin email here for testing
 ]
@@ -159,7 +159,7 @@ function Sidebar({
           <Link href="/admin" className="flex items-center gap-2">
             <Ghost className="w-8 h-8 text-purple-500" />
             <div>
-              <span className="font-bold text-white text-sm">Ghosts Admin</span>
+              <span className="font-bold text-white text-sm">Ghost Guide Admin</span>
               <span className="block text-[10px] text-gray-500">Content Management</span>
             </div>
           </Link>

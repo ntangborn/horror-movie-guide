@@ -1,6 +1,8 @@
-# Ghosts in the Machine
+# Ghost Guide
 
 Horror & Sci-Fi TV Guide - Discover where to stream your favorite horror movies and sci-fi thrillers.
+
+**Live at [ghostguide.co](https://ghostguide.co)**
 
 ## Features
 
