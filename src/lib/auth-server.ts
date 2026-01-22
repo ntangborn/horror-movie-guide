@@ -10,8 +10,8 @@ import { cookies } from 'next/headers'
 
 // Admin email list - users who can access /admin routes
 export const ADMIN_EMAILS = [
+  'ntangborn@gmail.com',
   'admin@example.com',
-  // Add more admin emails here
 ]
 
 /**

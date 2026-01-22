@@ -19,13 +19,8 @@ import {
   Activity,
   Youtube,
 } from 'lucide-react'
-
-// Admin emails - in production, this would come from a database or env
-const ADMIN_EMAILS = [
-  'admin@ghostguide.co',
-  'demo@admin.com',
-  // Add your admin email here for testing
-]
+import { getCurrentUser, signOut, onAuthStateChange, ADMIN_EMAILS } from '@/lib/auth'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface NavItem {
   label: string
@@ -77,7 +72,7 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 /**
- * Mock admin session check - in production, use Supabase auth
+ * Admin session check using Supabase auth
  */
 function useAdminAuth() {
   const [isLoading, setIsLoading] = useState(true)
@@ -85,34 +80,44 @@ function useAdminAuth() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    // Simulate checking auth session
-    const checkAuth = async () => {
-      // In production, this would check Supabase session
-      // For now, check localStorage for demo purposes
-      const storedEmail = localStorage.getItem('admin_demo_email')
-
-      if (storedEmail && ADMIN_EMAILS.includes(storedEmail)) {
+    // Check current user on mount
+    getCurrentUser().then((user) => {
+      if (user?.email && ADMIN_EMAILS.includes(user.email)) {
         setIsAdmin(true)
-        setUserEmail(storedEmail)
+        setUserEmail(user.email)
       } else {
-        // For demo: auto-login as admin
-        const demoEmail = 'demo@admin.com'
-        localStorage.setItem('admin_demo_email', demoEmail)
-        setIsAdmin(true)
-        setUserEmail(demoEmail)
+        setIsAdmin(false)
+        setUserEmail(null)
       }
-
       setIsLoading(false)
-    }
+    })
 
-    checkAuth()
+    // Subscribe to auth state changes
+    const { data: { subscription } } = onAuthStateChange((event, session) => {
+      const user = session?.user
+      if (user?.email && ADMIN_EMAILS.includes(user.email)) {
+        setIsAdmin(true)
+        setUserEmail(user.email)
+      } else {
+        setIsAdmin(false)
+        setUserEmail(null)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
-  const logout = () => {
-    localStorage.removeItem('admin_demo_email')
-    setIsAdmin(false)
-    setUserEmail(null)
-    window.location.href = '/'
+  const logout = async () => {
+    try {
+      await signOut()
+      setIsAdmin(false)
+      setUserEmail(null)
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Sign out error:', error)
+    }
   }
 
   return { isLoading, isAdmin, userEmail, logout }
