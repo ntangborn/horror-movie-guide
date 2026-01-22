@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   Search,
   Filter,
@@ -16,71 +17,45 @@ import {
   Shield,
   Calendar,
   TrendingUp,
+  Loader2,
 } from 'lucide-react'
 
-// Mock user data
-const MOCK_USERS = [
-  {
-    id: '1',
-    email: 'horror.fan@example.com',
-    name: 'Alex Horror',
-    tier: 'premium',
-    status: 'active',
-    watchlist_count: 45,
-    watched_count: 128,
-    joined: '2023-06-15',
-    last_active: '2024-01-15',
-  },
-  {
-    id: '2',
-    email: 'scream.queen@example.com',
-    name: 'Sarah Screamer',
-    tier: 'premium',
-    status: 'active',
-    watchlist_count: 23,
-    watched_count: 89,
-    joined: '2023-08-22',
-    last_active: '2024-01-14',
-  },
-  {
-    id: '3',
-    email: 'slasher.lover@example.com',
-    name: 'Mike Myers Fan',
-    tier: 'free',
-    status: 'active',
-    watchlist_count: 12,
-    watched_count: 34,
-    joined: '2023-11-01',
-    last_active: '2024-01-13',
-  },
-  {
-    id: '4',
-    email: 'ghost.watcher@example.com',
-    name: 'Ghostface',
-    tier: 'premium',
-    status: 'inactive',
-    watchlist_count: 67,
-    watched_count: 201,
-    joined: '2023-03-10',
-    last_active: '2023-12-01',
-  },
-  {
-    id: '5',
-    email: 'freddy.fan@example.com',
-    name: 'Nancy Thompson',
-    tier: 'free',
-    status: 'active',
-    watchlist_count: 8,
-    watched_count: 15,
-    joined: '2024-01-01',
-    last_active: '2024-01-15',
-  },
-]
+interface User {
+  id: string
+  email: string
+  tier: string
+  status: string
+  watchlist_count: number
+  joined: string
+  last_active: string
+}
+
+interface UsersResponse {
+  users: User[]
+  total: number
+}
+
+async function fetchUsers(): Promise<UsersResponse> {
+  const response = await fetch('/api/admin/users')
+  if (!response.ok) {
+    throw new Error('Failed to fetch users')
+  }
+  return response.json()
+}
+
+/**
+ * Format date for display
+ */
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return 'Never'
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
 
 /**
  * User Row Component
  */
-function UserRow({ user }: { user: typeof MOCK_USERS[0] }) {
+function UserRow({ user }: { user: User }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const tierColors = {
@@ -94,36 +69,36 @@ function UserRow({ user }: { user: typeof MOCK_USERS[0] }) {
     banned: 'bg-red-600/20 text-red-400',
   }
 
+  const emailInitial = user.email.charAt(0).toUpperCase()
+
   return (
     <tr className="border-b border-gray-800/50 hover:bg-[#1a1a1a] transition-colors">
       <td className="p-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center">
             <span className="text-purple-400 font-semibold">
-              {user.name.charAt(0)}
+              {emailInitial}
             </span>
           </div>
           <div>
-            <p className="font-medium text-white">{user.name}</p>
-            <p className="text-sm text-gray-500">{user.email}</p>
+            <p className="font-medium text-white">{user.email}</p>
           </div>
         </div>
       </td>
       <td className="p-4">
-        <span className={`px-2 py-1 rounded text-xs font-medium ${tierColors[user.tier as keyof typeof tierColors]}`}>
+        <span className={`px-2 py-1 rounded text-xs font-medium ${tierColors[user.tier as keyof typeof tierColors] || tierColors.free}`}>
           {user.tier === 'premium' && <Crown className="w-3 h-3 inline mr-1" />}
           {user.tier.charAt(0).toUpperCase() + user.tier.slice(1)}
         </span>
       </td>
       <td className="p-4">
-        <span className={`px-2 py-1 rounded text-xs font-medium ${statusColors[user.status as keyof typeof statusColors]}`}>
+        <span className={`px-2 py-1 rounded text-xs font-medium ${statusColors[user.status as keyof typeof statusColors] || statusColors.inactive}`}>
           {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
         </span>
       </td>
       <td className="p-4 text-gray-400">{user.watchlist_count}</td>
-      <td className="p-4 text-gray-400">{user.watched_count}</td>
-      <td className="p-4 text-gray-500 text-sm">{user.joined}</td>
-      <td className="p-4 text-gray-500 text-sm">{user.last_active}</td>
+      <td className="p-4 text-gray-500 text-sm">{formatDate(user.joined)}</td>
+      <td className="p-4 text-gray-500 text-sm">{formatDate(user.last_active)}</td>
       <td className="p-4">
         <div className="relative">
           <button
@@ -174,20 +149,45 @@ export default function AdminUsersPage() {
   const [filterTier, setFilterTier] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
 
-  const filteredUsers = MOCK_USERS.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: fetchUsers,
+    staleTime: 60 * 1000,
+  })
+
+  const users = data?.users || []
+
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = user.email.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesTier = filterTier === 'all' || user.tier === filterTier
     const matchesStatus = filterStatus === 'all' || user.status === filterStatus
     return matchesSearch && matchesTier && matchesStatus
   })
 
   // Calculate stats
-  const totalUsers = MOCK_USERS.length
-  const premiumUsers = MOCK_USERS.filter((u) => u.tier === 'premium').length
-  const activeUsers = MOCK_USERS.filter((u) => u.status === 'active').length
-  const newThisMonth = MOCK_USERS.filter((u) => u.joined.startsWith('2024-01')).length
+  const totalUsers = users.length
+  const premiumUsers = users.filter((u) => u.tier === 'premium').length
+  const activeUsers = users.filter((u) => u.status === 'active').length
+  const thisMonth = new Date().toISOString().slice(0, 7)
+  const newThisMonth = users.filter((u) => u.joined && u.joined.startsWith(thisMonth)).length
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+        <UserX className="w-12 h-12 text-red-500 mb-4" />
+        <h3 className="text-lg font-medium text-white mb-2">Failed to load users</h3>
+        <p className="text-gray-500">{error instanceof Error ? error.message : 'An error occurred'}</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -218,7 +218,7 @@ export default function AdminUsersPage() {
             <span className="text-sm text-gray-500">Premium</span>
           </div>
           <p className="text-2xl font-bold text-white">{premiumUsers}</p>
-          <p className="text-xs text-gray-500">{Math.round((premiumUsers / totalUsers) * 100)}% of total</p>
+          <p className="text-xs text-gray-500">{totalUsers > 0 ? Math.round((premiumUsers / totalUsers) * 100) : 0}% of total</p>
         </div>
         <div className="bg-[#141414] rounded-lg border border-gray-800 p-4">
           <div className="flex items-center gap-3 mb-2">
@@ -286,7 +286,6 @@ export default function AdminUsersPage() {
                 <th className="text-left p-4 text-sm font-medium text-gray-500">Tier</th>
                 <th className="text-left p-4 text-sm font-medium text-gray-500">Status</th>
                 <th className="text-left p-4 text-sm font-medium text-gray-500">Watchlist</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-500">Watched</th>
                 <th className="text-left p-4 text-sm font-medium text-gray-500">Joined</th>
                 <th className="text-left p-4 text-sm font-medium text-gray-500">Last Active</th>
                 <th className="text-left p-4 text-sm font-medium text-gray-500"></th>
@@ -313,7 +312,7 @@ export default function AdminUsersPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-gray-800">
           <p className="text-sm text-gray-500">
-            Showing {filteredUsers.length} of {MOCK_USERS.length} users
+            Showing {filteredUsers.length} of {data?.total || 0} users
           </p>
           <div className="flex items-center gap-2">
             <button className="px-3 py-1.5 rounded bg-gray-800 text-gray-400 text-sm hover:bg-gray-700">
