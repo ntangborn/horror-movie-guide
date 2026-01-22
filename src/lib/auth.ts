@@ -32,6 +32,41 @@ export async function sendMagicLink(email: string) {
 }
 
 /**
+ * Sign in with email and password (client-side)
+ */
+export async function signInWithPassword(email: string, password: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return { success: true, user: data.user }
+}
+
+/**
+ * Sign up with email and password (client-side)
+ */
+export async function signUpWithPassword(email: string, password: string) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+    },
+  })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return { success: true, user: data.user }
+}
+
+/**
  * Sign out (client-side)
  */
 export async function signOut() {
