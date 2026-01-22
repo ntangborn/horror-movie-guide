@@ -47,6 +47,7 @@ export const SORT_OPTIONS = [
   { value: 'year_asc', label: 'Oldest First' },
   { value: 'title', label: 'A-Z' },
   { value: 'recently_added', label: 'Recently Added' },
+  { value: 'coming_soon', label: 'New & Upcoming' },
 ] as const
 
 export interface FilterState {

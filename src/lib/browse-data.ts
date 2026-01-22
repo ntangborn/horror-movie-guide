@@ -85,10 +85,18 @@ export async function fetchBrowseCards(
   // Sorting
   switch (filters.sort) {
     case 'rating':
-      query = query.order('imdb_rating', { ascending: false, nullsFirst: false })
+      // Only show enriched titles (with poster and streaming)
+      query = query
+        .not('poster_url', 'is', null)
+        .not('sources', 'eq', '[]')
+        .order('imdb_rating', { ascending: false, nullsFirst: false })
       break
     case 'year_desc':
-      query = query.order('year', { ascending: false })
+      // Only show enriched titles (with poster and streaming) - no upcoming without data
+      query = query
+        .not('poster_url', 'is', null)
+        .not('sources', 'eq', '[]')
+        .order('year', { ascending: false })
       break
     case 'year_asc':
       query = query.order('year', { ascending: true })
@@ -97,11 +105,24 @@ export async function fetchBrowseCards(
       query = query.order('title', { ascending: true })
       break
     case 'recently_added':
-      query = query.order('created_at', { ascending: false })
+      // Only show enriched titles
+      query = query
+        .not('poster_url', 'is', null)
+        .not('sources', 'eq', '[]')
+        .order('created_at', { ascending: false })
+      break
+    case 'coming_soon':
+      // Show titles without streaming sources (upcoming/announced)
+      query = query
+        .or('sources.is.null,sources.eq.[]')
+        .order('year', { ascending: false })
+        .order('title', { ascending: true })
       break
     default:
-      // Default: featured first, then by rating
+      // Default: featured first, then by rating - only enriched titles
       query = query
+        .not('poster_url', 'is', null)
+        .not('sources', 'eq', '[]')
         .order('featured', { ascending: false })
         .order('imdb_rating', { ascending: false, nullsFirst: false })
   }
@@ -207,13 +228,15 @@ export async function searchCards(
 }
 
 /**
- * Get featured cards
+ * Get featured cards (only enriched titles)
  */
 export async function getFeaturedCards(limit: number = 10): Promise<AvailabilityCard[]> {
   const { data, error } = await supabase
     .from('availability_cards')
     .select(BROWSE_COLUMNS)
     .eq('featured', true)
+    .not('poster_url', 'is', null)
+    .not('sources', 'eq', '[]')
     .order('imdb_rating', { ascending: false, nullsFirst: false })
     .limit(limit)
 
@@ -226,7 +249,7 @@ export async function getFeaturedCards(limit: number = 10): Promise<Availability
 }
 
 /**
- * Get cards by genre
+ * Get cards by genre (only enriched titles)
  */
 export async function getCardsByGenre(
   genre: string,
@@ -236,6 +259,8 @@ export async function getCardsByGenre(
     .from('availability_cards')
     .select(BROWSE_COLUMNS)
     .or(`genres.cs.{${genre}},genres.cs.{${capitalize(genre)}}`)
+    .not('poster_url', 'is', null)
+    .not('sources', 'eq', '[]')
     .order('imdb_rating', { ascending: false, nullsFirst: false })
     .limit(limit)
 
@@ -249,11 +274,14 @@ export async function getCardsByGenre(
 
 /**
  * Get recently added cards
+ * Only returns titles with poster images and streaming availability
  */
 export async function getRecentlyAddedCards(limit: number = 20): Promise<AvailabilityCard[]> {
   const { data, error } = await supabase
     .from('availability_cards')
     .select(BROWSE_COLUMNS)
+    .not('poster_url', 'is', null)
+    .not('sources', 'eq', '[]')
     .order('created_at', { ascending: false })
     .limit(limit)
 
