@@ -99,3 +99,31 @@ export async function getCurrentUser() {
 export function onAuthStateChange(callback: (event: string, session: any) => void) {
   return supabase.auth.onAuthStateChange(callback)
 }
+
+/**
+ * Send password reset email (client-side)
+ */
+export async function sendPasswordReset(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return { success: true }
+}
+
+/**
+ * Update password for current user (client-side)
+ */
+export async function updatePassword(newPassword: string) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return { success: true }
+}

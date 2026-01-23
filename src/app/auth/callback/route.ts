@@ -18,6 +18,9 @@ export async function GET(request: NextRequest) {
   const next = requestUrl.searchParams.get('next') || '/'
   const origin = requestUrl.origin
 
+  // Debug logging
+  console.log('Auth callback params:', { code: !!code, token_hash: !!token_hash, type, next })
+
   const cookieStore = await cookies()
 
   const supabase = createServerClient(
@@ -60,7 +63,28 @@ export async function GET(request: NextRequest) {
       await upsertUser(supabase, data.user)
     }
 
+    // If this is a password recovery flow, redirect to reset-password
+    if (type === 'recovery') {
+      return NextResponse.redirect(`${origin}/reset-password`)
+    }
+
     return NextResponse.redirect(`${origin}${next}`)
+  }
+
+  // Handle password recovery
+  if (token_hash && type === 'recovery') {
+    const { data, error } = await supabase.auth.verifyOtp({
+      type: 'recovery',
+      token_hash,
+    })
+
+    if (error) {
+      console.error('Auth callback error (recovery):', error.message)
+      return NextResponse.redirect(`${origin}/forgot-password?error=recovery_failed`)
+    }
+
+    // Redirect to reset-password page - Supabase has set the session
+    return NextResponse.redirect(`${origin}/reset-password`)
   }
 
   // Handle magic link with token_hash (older format)
