@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import { useWatchlist } from '@/hooks/useWatchlist'
 import { POSTER_BLUR_DATA_URL, IMAGE_SIZES } from '@/lib/image-utils'
-import type { AvailabilityCard, StreamingSource } from '@/types'
+import type { AvailabilityCard, StreamingSource, DeepDiveUrl } from '@/types'
 
 /**
  * Service color and logo mapping
@@ -661,6 +661,42 @@ export function TitleDetailModal({ card, isOpen, onClose, isEPGItem = false }: T
                   Synopsis
                 </h3>
                 <p className="text-gray-300 leading-relaxed">{card.synopsis}</p>
+              </div>
+            )}
+
+            {/* Deep Dive URLs */}
+            {card.deep_dive_urls && card.deep_dive_urls.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-purple-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <span>Deep Dive</span>
+                  <span className="text-xs font-normal text-purple-500 bg-purple-500/20 px-1.5 py-0.5 rounded">Beta</span>
+                </h3>
+                <div className="space-y-2">
+                  {card.deep_dive_urls.map((deepUrl: DeepDiveUrl, index: number) => (
+                    <a
+                      key={index}
+                      href={deepUrl.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="
+                        flex items-center justify-between gap-3 w-full p-3 rounded-lg
+                        bg-purple-600/10 border border-purple-500/30
+                        hover:bg-purple-600/20 hover:border-purple-500/50
+                        transition-all duration-200 group
+                      "
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-white group-hover:text-purple-300 transition-colors truncate">
+                          {deepUrl.label}
+                        </p>
+                        {deepUrl.source && (
+                          <p className="text-sm text-gray-400">{deepUrl.source}</p>
+                        )}
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-purple-400 flex-shrink-0 group-hover:text-purple-300 transition-colors" />
+                    </a>
+                  ))}
+                </div>
               </div>
             )}
 

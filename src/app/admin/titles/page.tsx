@@ -26,6 +26,7 @@ import {
   ImageIcon,
   FileText,
   Tv,
+  Link2,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -907,6 +908,14 @@ interface StreamingSource {
 // ============================================
 // Manual Enrich Modal
 // ============================================
+// Deep Dive URL interface
+interface DeepDiveUrl {
+  url: string
+  label: string
+  source: string
+  added_at: string
+}
+
 function ManualEnrichModal({
   isOpen,
   title,
@@ -918,7 +927,7 @@ function ManualEnrichModal({
   onClose: () => void
   onSave: (updates: Partial<Title> & { id: string }) => void
 }) {
-  const [activeTab, setActiveTab] = useState<'poster' | 'metadata' | 'sources'>('poster')
+  const [activeTab, setActiveTab] = useState<'poster' | 'metadata' | 'sources' | 'deepdive'>('poster')
   const [isLoading, setIsLoading] = useState(false)
 
   // Form state
@@ -947,6 +956,17 @@ function ManualEnrichModal({
   })
   const [showAddSource, setShowAddSource] = useState(false)
 
+  // Deep Dive URLs state
+  const [deepDiveUrls, setDeepDiveUrls] = useState<DeepDiveUrl[]>([])
+  const [editingUrlIndex, setEditingUrlIndex] = useState<number | null>(null)
+  const [newDeepDiveUrl, setNewDeepDiveUrl] = useState<DeepDiveUrl>({
+    url: '',
+    label: '',
+    source: '',
+    added_at: '',
+  })
+  const [showAddUrl, setShowAddUrl] = useState(false)
+
   // Reset form when title changes
   useEffect(() => {
     if (title) {
@@ -971,6 +991,7 @@ function ManualEnrichModal({
           quality: s.quality || '',
         }))
       )
+      setDeepDiveUrls((title as any).deep_dive_urls || [])
     }
   }, [title])
 
@@ -1001,6 +1022,7 @@ function ManualEnrichModal({
         price: s.price || null,
         quality: s.quality || null,
       })),
+      deep_dive_urls: deepDiveUrls,
     }
 
     await onSave(updates)
@@ -1032,12 +1054,35 @@ function ManualEnrichModal({
     setSources(sources.filter((_, i) => i !== index))
   }
 
+  // Deep Dive URL handlers
+  const handleAddDeepDiveUrl = () => {
+    if (!newDeepDiveUrl.url || !newDeepDiveUrl.label) return
+    setDeepDiveUrls([
+      ...deepDiveUrls,
+      { ...newDeepDiveUrl, added_at: new Date().toISOString() },
+    ])
+    setNewDeepDiveUrl({ url: '', label: '', source: '', added_at: '' })
+    setShowAddUrl(false)
+  }
+
+  const handleUpdateDeepDiveUrl = (index: number, updatedUrl: DeepDiveUrl) => {
+    const newUrls = [...deepDiveUrls]
+    newUrls[index] = updatedUrl
+    setDeepDiveUrls(newUrls)
+    setEditingUrlIndex(null)
+  }
+
+  const handleDeleteDeepDiveUrl = (index: number) => {
+    setDeepDiveUrls(deepDiveUrls.filter((_, i) => i !== index))
+  }
+
   if (!isOpen || !title) return null
 
   const tabs = [
     { id: 'poster', label: 'Poster & Media', icon: ImageIcon },
     { id: 'metadata', label: 'Metadata', icon: FileText },
     { id: 'sources', label: 'Streaming Sources', icon: Tv },
+    { id: 'deepdive', label: 'Deep Dive URLs', icon: Link2 },
   ] as const
 
   return (
@@ -1498,6 +1543,182 @@ function ManualEnrichModal({
               {sources.length === 0 && !showAddSource && (
                 <p className="text-center text-gray-500 text-sm py-4">
                   No streaming sources yet. Click &quot;Add Streaming Source&quot; to add one.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Deep Dive URLs Tab */}
+          {activeTab === 'deepdive' && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-400">
+                Add links to articles, reviews, and other content about this title. These will appear in the &quot;Deep Dive (Beta)&quot; section on the title detail page.
+              </p>
+
+              {/* Existing URLs list */}
+              {deepDiveUrls.length > 0 && (
+                <div className="space-y-2">
+                  {deepDiveUrls.map((deepUrl, index) => (
+                    <div
+                      key={index}
+                      className="bg-[#1a1a1a] border border-gray-800 rounded-lg p-3"
+                    >
+                      {editingUrlIndex === index ? (
+                        // Edit mode
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">URL *</label>
+                            <input
+                              type="text"
+                              value={deepUrl.url}
+                              onChange={(e) =>
+                                handleUpdateDeepDiveUrl(index, { ...deepUrl, url: e.target.value })
+                              }
+                              placeholder="https://..."
+                              className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Label *</label>
+                            <input
+                              type="text"
+                              value={deepUrl.label}
+                              onChange={(e) =>
+                                handleUpdateDeepDiveUrl(index, { ...deepUrl, label: e.target.value })
+                              }
+                              placeholder="Article title"
+                              className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Source</label>
+                            <input
+                              type="text"
+                              value={deepUrl.source}
+                              onChange={(e) =>
+                                handleUpdateDeepDiveUrl(index, { ...deepUrl, source: e.target.value })
+                              }
+                              placeholder="Website name"
+                              className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                            />
+                          </div>
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => setEditingUrlIndex(null)}
+                              className="px-3 py-1 text-sm text-purple-400 hover:text-purple-300"
+                            >
+                              Done
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        // View mode
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Link2 className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                              <span className="font-medium text-white truncate">{deepUrl.label}</span>
+                            </div>
+                            {deepUrl.source && (
+                              <p className="text-xs text-gray-500 mt-0.5 ml-6">{deepUrl.source}</p>
+                            )}
+                            <p className="text-xs text-gray-600 mt-1 ml-6 truncate">{deepUrl.url}</p>
+                          </div>
+                          <div className="flex items-center gap-1 ml-2">
+                            <a
+                              href={deepUrl.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded hover:bg-gray-800 text-gray-400 hover:text-white"
+                              title="Open link"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                            <button
+                              onClick={() => setEditingUrlIndex(index)}
+                              className="p-1.5 rounded hover:bg-gray-800 text-gray-400 hover:text-white"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDeepDiveUrl(index)}
+                              className="p-1.5 rounded hover:bg-red-600/20 text-gray-400 hover:text-red-400"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add new URL */}
+              {showAddUrl ? (
+                <div className="bg-[#1a1a1a] border border-gray-800 rounded-lg p-4 space-y-3">
+                  <h4 className="text-sm font-medium text-white">Add New URL</h4>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">URL *</label>
+                    <input
+                      type="text"
+                      value={newDeepDiveUrl.url}
+                      onChange={(e) => setNewDeepDiveUrl({ ...newDeepDiveUrl, url: e.target.value })}
+                      placeholder="https://example.com/article"
+                      className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Label * (Article title)</label>
+                    <input
+                      type="text"
+                      value={newDeepDiveUrl.label}
+                      onChange={(e) => setNewDeepDiveUrl({ ...newDeepDiveUrl, label: e.target.value })}
+                      placeholder="The Making of Halloween (1978)"
+                      className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Source (Website name)</label>
+                    <input
+                      type="text"
+                      value={newDeepDiveUrl.source}
+                      onChange={(e) => setNewDeepDiveUrl({ ...newDeepDiveUrl, source: e.target.value })}
+                      placeholder="Bloody Disgusting"
+                      className="w-full px-2 py-1.5 rounded bg-gray-800 border border-gray-700 text-white text-sm"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setShowAddUrl(false)}
+                      className="px-3 py-1.5 text-sm text-gray-400 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleAddDeepDiveUrl}
+                      disabled={!newDeepDiveUrl.url || !newDeepDiveUrl.label}
+                      className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Add URL
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAddUrl(true)}
+                  className="w-full py-3 border-2 border-dashed border-gray-700 rounded-lg text-gray-400 hover:text-white hover:border-purple-500 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Deep Dive URL
+                </button>
+              )}
+
+              {deepDiveUrls.length === 0 && !showAddUrl && (
+                <p className="text-center text-gray-500 text-sm py-4">
+                  No deep dive URLs yet. Click &quot;Add Deep Dive URL&quot; to add one.
                 </p>
               )}
             </div>

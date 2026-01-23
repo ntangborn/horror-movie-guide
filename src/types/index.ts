@@ -11,6 +11,13 @@ export interface StreamingSource {
   last_verified: string
 }
 
+export interface DeepDiveUrl {
+  url: string
+  label: string
+  source: string
+  added_at: string
+}
+
 export type TrailerStatus = 'none' | 'pending' | 'approved' | 'rejected'
 
 export interface AvailabilityCard {
@@ -48,6 +55,8 @@ export interface AvailabilityCard {
   trailer_status?: TrailerStatus
   trailer_reviewed_at?: string
   trailer_scraped_at?: string
+  // Deep Dive URLs
+  deep_dive_urls?: DeepDiveUrl[]
 }
 
 export interface EPGScheduleItem {

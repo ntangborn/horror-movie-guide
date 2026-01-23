@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, ReactNode, lazy, Suspense } from 'react'
 import type { AvailabilityCard } from '@/types'
+import { supabase } from '@/lib/supabase'
 
 // Lazy load the modal - it's not needed on initial page load
 const TitleDetailModal = lazy(() => import('@/components/TitleDetailModal'))
@@ -26,10 +27,26 @@ export function TitleModalProvider({ children }: { children: ReactNode }) {
   const [currentCard, setCurrentCard] = useState<AvailabilityCard | null>(null)
   const [isEPGItem, setIsEPGItem] = useState(false)
 
-  const openModal = useCallback((card: AvailabilityCard, epgItem = false) => {
+  const openModal = useCallback(async (card: AvailabilityCard, epgItem = false) => {
+    // Set initial card data for immediate display
     setCurrentCard(card)
     setIsEPGItem(epgItem)
     setIsOpen(true)
+
+    // Fetch full card data (including deep_dive_urls and other fields not in browse columns)
+    try {
+      const { data, error } = await supabase
+        .from('availability_cards')
+        .select('*')
+        .eq('id', card.id)
+        .single()
+
+      if (!error && data) {
+        setCurrentCard(data as AvailabilityCard)
+      }
+    } catch (err) {
+      console.error('Error fetching full card data:', err)
+    }
   }, [])
 
   const closeModal = useCallback(() => {
