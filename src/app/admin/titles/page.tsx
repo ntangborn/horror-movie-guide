@@ -29,6 +29,7 @@ import {
   Link2,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import type { DeepDiveUrl } from '@/types'
 
 // Types
 interface Title {
@@ -47,6 +48,7 @@ interface Title {
   editorial_tags: string[]
   updated_at: string
   created_at: string
+  deep_dive_urls?: DeepDiveUrl[]
 }
 
 // Computed property for sources count
@@ -72,6 +74,7 @@ function mapDbRowToTitle(row: any): Title {
     editorial_tags: row.editorial_tags || [],
     updated_at: row.updated_at,
     created_at: row.created_at,
+    deep_dive_urls: row.deep_dive_urls || [],
   }
 }
 
@@ -908,14 +911,6 @@ interface StreamingSource {
 // ============================================
 // Manual Enrich Modal
 // ============================================
-// Deep Dive URL interface
-interface DeepDiveUrl {
-  url: string
-  label: string
-  source: string
-  added_at: string
-}
-
 function ManualEnrichModal({
   isOpen,
   title,
