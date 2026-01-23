@@ -86,6 +86,7 @@ interface DatabaseTitle {
   year: number
   availability_checked_at: string | null
   trailer_status: string | null
+  poster_url: string | null
 }
 
 /**
@@ -102,8 +103,10 @@ async function getTitlesForTrailers(args: Args): Promise<TitleForExport[]> {
   while (hasMore) {
     let query = supabase
       .from('availability_cards')
-      .select('id, title, year, availability_checked_at, trailer_status')
+      .select('id, title, year, availability_checked_at, trailer_status, poster_url')
       .or('trailer_status.is.null,trailer_status.eq.none')
+      .not('poster_url', 'is', null)
+      .neq('poster_url', '')
       .order('availability_checked_at', { ascending: false, nullsFirst: false })
       .range(offset, offset + pageSize - 1)
 
@@ -164,9 +167,9 @@ async function exportForTrailers(args: Args) {
   console.log(`\n📊 Configuration:`)
   console.log(`   Limit: ${args.limit} titles`)
   if (args.all) {
-    console.log(`   Filter: All titles without trailers`)
+    console.log(`   Filter: All titles without trailers (with posters)`)
   } else {
-    console.log(`   Filter: Enriched in last ${args.days} days`)
+    console.log(`   Filter: Enriched in last ${args.days} days (with posters)`)
   }
   console.log(`   Output: ${OUTPUT_PATH}\n`)
 
