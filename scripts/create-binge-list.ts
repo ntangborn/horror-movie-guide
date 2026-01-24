@@ -14,27 +14,27 @@ const supabase = createClient(
 )
 
 // List metadata
-const LIST_TITLE = 'Media Panic Horror – News Cycles, Misinformation, Hysteria'
-const LIST_SLUG = 'media-panic-horror'
-const LIST_DESCRIPTION = 'The broadcast is the contagion. Horror about media, signals, and the way information spreads like a virus.'
+const LIST_TITLE = '70s Pessimism – Everything Is Brown and Doomed'
+const LIST_SLUG = '70s-pessimism'
+const LIST_DESCRIPTION = 'Earth tones, cigarette smoke, institutions failing, hope dying. The decade when American cinema stopped believing in happy endings.'
 
 // Movies to find
 const movies = [
-  { title: 'Videodrome', year: 1983 },
-  { title: 'Network', year: 1976 },
-  { title: 'They Live', year: 1988 },
-  { title: 'The Ring', year: 2002 },
-  { title: 'Pontypool', year: 2008 },
-  { title: 'Christine', year: 2016 },
-  { title: 'Nightcrawler', year: 2014 },
-  { title: 'Natural Born Killers', year: 1994 },
-  { title: 'The Bay', year: 2012 },
-  { title: 'Cell', year: 2016 },
-  { title: 'Pulse', year: 2001 },
-  { title: 'The Signal', year: 2007 },
-  { title: 'V/H/S', year: 2012 },
-  { title: 'Antiviral', year: 2012 },
-  { title: 'Broadcast Signal Intrusion', year: 2021 },
+  { title: 'The Texas Chain Saw Massacre', year: 1974 },
+  { title: 'Chinatown', year: 1974 },
+  { title: 'The Parallax View', year: 1974 },
+  { title: 'The Conversation', year: 1974 },
+  { title: 'Night Moves', year: 1975 },
+  { title: 'The Wicker Man', year: 1973 },
+  { title: 'Don\'t Look Now', year: 1973 },
+  { title: 'Sorcerer', year: 1977 },
+  { title: 'Invasion of the Body Snatchers', year: 1978 },
+  { title: 'The Omen', year: 1976 },
+  { title: 'Carrie', year: 1976 },
+  { title: 'Last House on the Left', year: 1972 },
+  { title: 'I Spit on Your Grave', year: 1978 },
+  { title: 'Race with the Devil', year: 1975 },
+  { title: 'The Hills Have Eyes', year: 1977 },
 ]
 
 interface CardResult {
