@@ -21,6 +21,11 @@ const nextConfig = {
         hostname: 'ia.media-imdb.com',
         pathname: '/images/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'encrypted-tbn0.gstatic.com',
+        pathname: '/images/**',
+      },
     ],
   },
 }

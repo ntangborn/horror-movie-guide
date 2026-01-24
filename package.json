@@ -10,7 +10,9 @@
     "seed": "ts-node --project scripts/tsconfig.json scripts/seed-from-csv.ts",
     "seed:lists": "ts-node --project scripts/tsconfig.json scripts/seed-lists.ts",
     "enrich": "ts-node --project scripts/tsconfig.json scripts/enrich-titles.ts",
-    "import-scifi": "ts-node --project scripts/tsconfig.json scripts/import-scifi.ts"
+    "import-scifi": "ts-node --project scripts/tsconfig.json scripts/import-scifi.ts",
+    "deep-dive:export": "npx tsx scripts/export-for-deep-dive.ts",
+    "deep-dive:import": "npx tsx scripts/import-deep-dive.ts"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

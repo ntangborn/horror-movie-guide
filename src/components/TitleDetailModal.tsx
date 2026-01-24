@@ -402,6 +402,7 @@ export function TitleDetailModal({ card, isOpen, onClose, isEPGItem = false }: T
   const [showReminderPicker, setShowReminderPicker] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [showTrailer, setShowTrailer] = useState(false)
+  const [showAllDeepDive, setShowAllDeepDive] = useState(false)
 
   // Check if current card is in watchlist
   const inWatchlist = card ? isInWatchlist(card.id) : false
@@ -436,6 +437,7 @@ export function TitleDetailModal({ card, isOpen, onClose, isEPGItem = false }: T
     if (card) {
       setIsWatched(false)
       setShowTrailer(false)
+      setShowAllDeepDive(false)
     }
   }, [card?.id])
 
@@ -665,40 +667,85 @@ export function TitleDetailModal({ card, isOpen, onClose, isEPGItem = false }: T
             )}
 
             {/* Deep Dive URLs */}
-            {card.deep_dive_urls && card.deep_dive_urls.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-purple-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <span>Deep Dive</span>
-                  <span className="text-xs font-normal text-purple-500 bg-purple-500/20 px-1.5 py-0.5 rounded">Beta</span>
-                </h3>
-                <div className="space-y-2">
-                  {card.deep_dive_urls.map((deepUrl: DeepDiveUrl, index: number) => (
-                    <a
-                      key={index}
-                      href={deepUrl.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+            {card.deep_dive_urls && card.deep_dive_urls.length > 0 && (() => {
+              // Sort: prioritize manually entered URLs (source !== "Deep Dive") over imported ones
+              const sortedUrls = [...card.deep_dive_urls].sort((a, b) => {
+                const aIsManual = a.source !== 'Deep Dive'
+                const bIsManual = b.source !== 'Deep Dive'
+                if (aIsManual && !bIsManual) return -1
+                if (!aIsManual && bIsManual) return 1
+                // Secondary sort by added_at descending (newer first)
+                return new Date(b.added_at).getTime() - new Date(a.added_at).getTime()
+              })
+
+              const INITIAL_DISPLAY_COUNT = 3
+              const hasMore = sortedUrls.length > INITIAL_DISPLAY_COUNT
+              const displayedUrls = showAllDeepDive ? sortedUrls : sortedUrls.slice(0, INITIAL_DISPLAY_COUNT)
+              const hiddenCount = sortedUrls.length - INITIAL_DISPLAY_COUNT
+
+              return (
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-purple-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <span>Deep Dive</span>
+                    <span className="text-xs font-normal text-purple-500 bg-purple-500/20 px-1.5 py-0.5 rounded">Beta</span>
+                    {sortedUrls.length > 1 && (
+                      <span className="text-xs font-normal text-gray-500">{sortedUrls.length} articles</span>
+                    )}
+                  </h3>
+                  <div className="space-y-2">
+                    {displayedUrls.map((deepUrl: DeepDiveUrl, index: number) => (
+                      <a
+                        key={index}
+                        href={deepUrl.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="
+                          flex items-center justify-between gap-3 w-full p-3 rounded-lg
+                          bg-purple-600/10 border border-purple-500/30
+                          hover:bg-purple-600/20 hover:border-purple-500/50
+                          transition-all duration-200 group
+                        "
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-white group-hover:text-purple-300 transition-colors truncate">
+                            {deepUrl.label}
+                          </p>
+                          {deepUrl.source && (
+                            <p className="text-sm text-gray-400">{deepUrl.source}</p>
+                          )}
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-purple-400 flex-shrink-0 group-hover:text-purple-300 transition-colors" />
+                      </a>
+                    ))}
+                  </div>
+                  {hasMore && (
+                    <button
+                      onClick={() => setShowAllDeepDive(!showAllDeepDive)}
                       className="
-                        flex items-center justify-between gap-3 w-full p-3 rounded-lg
-                        bg-purple-600/10 border border-purple-500/30
-                        hover:bg-purple-600/20 hover:border-purple-500/50
-                        transition-all duration-200 group
+                        w-full mt-2 py-2 px-3 rounded-lg text-sm
+                        text-purple-400 hover:text-purple-300
+                        bg-purple-600/5 hover:bg-purple-600/10
+                        border border-purple-500/20 hover:border-purple-500/30
+                        transition-all duration-200
+                        flex items-center justify-center gap-1
                       "
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-white group-hover:text-purple-300 transition-colors truncate">
-                          {deepUrl.label}
-                        </p>
-                        {deepUrl.source && (
-                          <p className="text-sm text-gray-400">{deepUrl.source}</p>
-                        )}
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-purple-400 flex-shrink-0 group-hover:text-purple-300 transition-colors" />
-                    </a>
-                  ))}
+                      {showAllDeepDive ? (
+                        <>
+                          <ChevronUp className="w-4 h-4" />
+                          Show less
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="w-4 h-4" />
+                          Show {hiddenCount} more article{hiddenCount > 1 ? 's' : ''}
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             {/* Trailer - Only show if approved */}
             {card.trailer_status === 'approved' && card.trailer_youtube_id && (
