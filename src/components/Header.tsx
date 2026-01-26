@@ -21,7 +21,7 @@ import {
   Home,
   Users,
 } from 'lucide-react'
-import { getCurrentUser, signOut, onAuthStateChange } from '@/lib/auth'
+import { getCurrentUser, signOut, onAuthStateChange, ADMIN_EMAILS } from '@/lib/auth'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 const NAV_ITEMS = [
@@ -159,14 +159,16 @@ export function Header() {
                           <p className="text-sm text-gray-400">Signed in as</p>
                           <p className="text-sm text-white truncate">{user.email}</p>
                         </div>
-                        <Link
-                          href="/admin"
-                          onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-2 px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
-                        >
-                          <User className="w-4 h-4" />
-                          Admin Dashboard
-                        </Link>
+                        {user.email && ADMIN_EMAILS.includes(user.email) && (
+                          <Link
+                            href="/admin"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2 px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
+                          >
+                            <User className="w-4 h-4" />
+                            Admin Dashboard
+                          </Link>
+                        )}
                         <button
                           onClick={handleSignOut}
                           className="flex items-center gap-2 w-full px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors border-t border-gray-800"
