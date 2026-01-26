@@ -103,10 +103,13 @@ export function onAuthStateChange(callback: (event: string, session: any) => voi
 
 /**
  * Send password reset email (client-side)
+ * Note: Redirects directly to /reset-password because Supabase sends
+ * recovery tokens in the URL hash fragment, which server-side routes can't access.
+ * The reset-password page handles the hash fragment client-side.
  */
 export async function sendPasswordReset(email: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/auth/callback`,
+    redirectTo: `${window.location.origin}/reset-password`,
   })
 
   if (error) {
