@@ -12,7 +12,8 @@
     "enrich": "ts-node --project scripts/tsconfig.json scripts/enrich-titles.ts",
     "import-scifi": "ts-node --project scripts/tsconfig.json scripts/import-scifi.ts",
     "deep-dive:export": "npx tsx scripts/export-for-deep-dive.ts",
-    "deep-dive:import": "npx tsx scripts/import-deep-dive.ts"
+    "deep-dive:import": "npx tsx scripts/import-deep-dive.ts",
+    "import-wikidata": "ts-node --project scripts/tsconfig.json scripts/import-wikidata-json.ts"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
