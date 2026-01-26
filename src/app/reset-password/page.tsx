@@ -19,23 +19,46 @@ export default function ResetPasswordPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [isSessionReady, setIsSessionReady] = useState(false)
 
-  // Listen for auth state changes (Supabase handles the URL hash automatically)
+  // Handle password recovery from URL hash
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsSessionReady(true)
-      } else if (session) {
-        // User already has a session (maybe from recovery link)
+      console.log('Auth state change:', event, !!session)
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setIsSessionReady(true)
       }
     })
 
-    // Also check if there's already a session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setIsSessionReady(true)
-      }
-    })
+    // Check for hash fragment and extract tokens
+    // Supabase sends: #access_token=xxx&refresh_token=xxx&type=recovery&...
+    const hashParams = new URLSearchParams(window.location.hash.substring(1))
+    const accessToken = hashParams.get('access_token')
+    const refreshToken = hashParams.get('refresh_token')
+    const type = hashParams.get('type')
+
+    if (accessToken && type === 'recovery') {
+      // Manually set the session from the hash tokens
+      supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken || '',
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('Error setting session from hash:', error)
+          setErrorMessage('Invalid or expired reset link. Please request a new one.')
+          setStatus('error')
+        } else if (data.session) {
+          setIsSessionReady(true)
+          // Clean up the URL hash
+          window.history.replaceState(null, '', window.location.pathname)
+        }
+      })
+    } else {
+      // No hash tokens - check if there's already a session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          setIsSessionReady(true)
+        }
+      })
+    }
 
     return () => {
       subscription.unsubscribe()
