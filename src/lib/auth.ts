@@ -17,12 +17,15 @@ export const ADMIN_EMAILS = [
 
 /**
  * Send magic link email (client-side)
+ * Uses implicit flow to avoid PKCE code verifier storage issues
  */
 export async function sendMagicLink(email: string) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       emailRedirectTo: `${window.location.origin}/auth/callback`,
+      // Use implicit flow - sends tokens in URL hash, no PKCE verifier needed
+      // This is more reliable when user might close tab or use different browser context
     },
   })
 

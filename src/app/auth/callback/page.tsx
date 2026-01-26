@@ -13,8 +13,31 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // The Supabase client with detectSessionInUrl: true will automatically
-        // handle the URL hash/code and exchange it for a session
+        // Check URL for error parameters first
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const urlParams = new URLSearchParams(window.location.search)
+
+        const errorParam = hashParams.get('error') || urlParams.get('error')
+        const errorDesc = hashParams.get('error_description') || urlParams.get('error_description')
+
+        if (errorParam) {
+          setError(errorDesc || errorParam)
+          return
+        }
+
+        // For implicit flow, tokens are in the hash fragment
+        // The Supabase client with detectSessionInUrl should handle this automatically
+        // But we need to give it a moment to process
+        const accessToken = hashParams.get('access_token')
+
+        if (accessToken) {
+          // Tokens are in the hash - let Supabase handle it
+          // The detectSessionInUrl option should auto-process this
+          // Wait a moment then check for session
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
+
+        // Check if we have a session now
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
         if (sessionError) {
@@ -29,27 +52,37 @@ export default function AuthCallbackPage() {
           return
         }
 
-        // Check URL for error parameters
-        const hashParams = new URLSearchParams(window.location.hash.substring(1))
-        const urlParams = new URLSearchParams(window.location.search)
-
-        const errorParam = hashParams.get('error') || urlParams.get('error')
-        const errorDesc = hashParams.get('error_description') || urlParams.get('error_description')
-
-        if (errorParam) {
-          setError(errorDesc || errorParam)
-          return
-        }
-
-        // If we have a code but no session, try exchanging it
+        // If there's a code param (PKCE fallback), try to exchange it
         const code = urlParams.get('code')
         if (code) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
           if (exchangeError) {
             console.error('Code exchange error:', exchangeError)
             setError(exchangeError.message)
             return
           }
+          if (data.session) {
+            router.push('/')
+            return
+          }
+        }
+
+        // If we have hash tokens but no session yet, try setting session manually
+        if (accessToken) {
+          const refreshToken = hashParams.get('refresh_token')
+          const { error: setSessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          })
+
+          if (setSessionError) {
+            console.error('Set session error:', setSessionError)
+            setError(setSessionError.message)
+            return
+          }
+
+          // Clear the hash from URL for cleaner appearance
+          window.history.replaceState(null, '', window.location.pathname)
           router.push('/')
           return
         }
@@ -62,8 +95,7 @@ export default function AuthCallbackPage() {
       }
     }
 
-    // Small delay to allow Supabase client to process URL
-    setTimeout(handleAuth, 100)
+    handleAuth()
   }, [router])
 
   return (
