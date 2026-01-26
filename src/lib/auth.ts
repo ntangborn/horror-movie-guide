@@ -12,6 +12,7 @@ export const ADMIN_EMAILS = [
   'ntangborn@gmail.com',
   'admin@example.com',
   'estrogenerator@icloud.com',
+  'pepper.rosemary@gmail.com',
 ]
 
 /**
