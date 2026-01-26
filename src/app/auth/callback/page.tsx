@@ -1,29 +1,48 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Ghost, Loader2, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
-function AuthCallbackContent() {
+export default function AuthCallbackPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // Check for error in query params
-        const errorParam = searchParams.get('error')
-        const errorDescription = searchParams.get('error_description')
-        if (errorParam) {
-          setError(errorDescription || errorParam)
+        // The Supabase client with detectSessionInUrl: true will automatically
+        // handle the URL hash/code and exchange it for a session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+        if (sessionError) {
+          console.error('Session error:', sessionError)
+          setError(sessionError.message)
           return
         }
 
-        // Check for code in query params (PKCE flow)
-        const code = searchParams.get('code')
+        if (session) {
+          // Successfully authenticated - redirect to home
+          router.push('/')
+          return
+        }
+
+        // Check URL for error parameters
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const urlParams = new URLSearchParams(window.location.search)
+
+        const errorParam = hashParams.get('error') || urlParams.get('error')
+        const errorDesc = hashParams.get('error_description') || urlParams.get('error_description')
+
+        if (errorParam) {
+          setError(errorDesc || errorParam)
+          return
+        }
+
+        // If we have a code but no session, try exchanging it
+        const code = urlParams.get('code')
         if (code) {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
           if (exchangeError) {
@@ -31,53 +50,11 @@ function AuthCallbackContent() {
             setError(exchangeError.message)
             return
           }
-          // Success - redirect to home
           router.push('/')
           return
         }
 
-        // Check for tokens in hash fragment
-        // Supabase sends: #access_token=xxx&refresh_token=xxx&type=magiclink&...
-        const hash = window.location.hash.substring(1)
-        if (hash) {
-          const hashParams = new URLSearchParams(hash)
-          const accessToken = hashParams.get('access_token')
-          const refreshToken = hashParams.get('refresh_token')
-          const type = hashParams.get('type')
-          const errorInHash = hashParams.get('error')
-          const errorDescInHash = hashParams.get('error_description')
-
-          if (errorInHash) {
-            setError(errorDescInHash || errorInHash)
-            return
-          }
-
-          if (accessToken) {
-            const { error: sessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            })
-
-            if (sessionError) {
-              console.error('Session error:', sessionError)
-              setError(sessionError.message)
-              return
-            }
-
-            // Success - redirect to home
-            router.push('/')
-            return
-          }
-        }
-
-        // No auth params found - check if already logged in
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-          router.push('/')
-          return
-        }
-
-        // Nothing worked
+        // No session and no auth params
         setError('No authentication data received. Please try logging in again.')
       } catch (err) {
         console.error('Auth callback error:', err)
@@ -85,53 +62,10 @@ function AuthCallbackContent() {
       }
     }
 
-    handleAuth()
-  }, [router, searchParams])
+    // Small delay to allow Supabase client to process URL
+    setTimeout(handleAuth, 100)
+  }, [router])
 
-  if (error) {
-    return (
-      <div className="py-4">
-        <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center mx-auto mb-4">
-          <AlertCircle className="w-8 h-8 text-red-500" />
-        </div>
-        <h2 className="text-xl font-semibold text-white mb-2">
-          Authentication Failed
-        </h2>
-        <p className="text-gray-400 mb-6">
-          {error}
-        </p>
-        <Link
-          href="/login"
-          className="inline-block px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
-        >
-          Try Again
-        </Link>
-      </div>
-    )
-  }
-
-  return (
-    <div className="py-8">
-      <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-4" />
-      <p className="text-gray-400">
-        Signing you in...
-      </p>
-    </div>
-  )
-}
-
-function LoadingFallback() {
-  return (
-    <div className="py-8">
-      <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-4" />
-      <p className="text-gray-400">
-        Loading...
-      </p>
-    </div>
-  )
-}
-
-export default function AuthCallbackPage() {
   return (
     <main className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
       <div className="w-full max-w-md text-center">
@@ -144,9 +78,32 @@ export default function AuthCallbackPage() {
         </Link>
 
         <div className="bg-[#111] border border-gray-800 rounded-xl p-8">
-          <Suspense fallback={<LoadingFallback />}>
-            <AuthCallbackContent />
-          </Suspense>
+          {error ? (
+            <div className="py-4">
+              <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-red-500" />
+              </div>
+              <h2 className="text-xl font-semibold text-white mb-2">
+                Authentication Failed
+              </h2>
+              <p className="text-gray-400 mb-6 text-sm">
+                {error}
+              </p>
+              <Link
+                href="/login"
+                className="inline-block px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+              >
+                Try Again
+              </Link>
+            </div>
+          ) : (
+            <div className="py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-4" />
+              <p className="text-gray-400">
+                Signing you in...
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </main>
