@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Ghost, Loader2, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
@@ -88,6 +88,50 @@ export default function AuthCallbackPage() {
     handleAuth()
   }, [router, searchParams])
 
+  if (error) {
+    return (
+      <div className="py-4">
+        <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center mx-auto mb-4">
+          <AlertCircle className="w-8 h-8 text-red-500" />
+        </div>
+        <h2 className="text-xl font-semibold text-white mb-2">
+          Authentication Failed
+        </h2>
+        <p className="text-gray-400 mb-6">
+          {error}
+        </p>
+        <Link
+          href="/login"
+          className="inline-block px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+        >
+          Try Again
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="py-8">
+      <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-4" />
+      <p className="text-gray-400">
+        Signing you in...
+      </p>
+    </div>
+  )
+}
+
+function LoadingFallback() {
+  return (
+    <div className="py-8">
+      <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-4" />
+      <p className="text-gray-400">
+        Loading...
+      </p>
+    </div>
+  )
+}
+
+export default function AuthCallbackPage() {
   return (
     <main className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
       <div className="w-full max-w-md text-center">
@@ -100,32 +144,9 @@ export default function AuthCallbackPage() {
         </Link>
 
         <div className="bg-[#111] border border-gray-800 rounded-xl p-8">
-          {error ? (
-            <div className="py-4">
-              <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="w-8 h-8 text-red-500" />
-              </div>
-              <h2 className="text-xl font-semibold text-white mb-2">
-                Authentication Failed
-              </h2>
-              <p className="text-gray-400 mb-6">
-                {error}
-              </p>
-              <Link
-                href="/login"
-                className="inline-block px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
-              >
-                Try Again
-              </Link>
-            </div>
-          ) : (
-            <div className="py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-4" />
-              <p className="text-gray-400">
-                Signing you in...
-              </p>
-            </div>
-          )}
+          <Suspense fallback={<LoadingFallback />}>
+            <AuthCallbackContent />
+          </Suspense>
         </div>
       </div>
     </main>
