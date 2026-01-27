@@ -26,68 +26,54 @@ export default function AuthCallbackPage() {
         }
 
         // For implicit flow, tokens are in the hash fragment
-        // The Supabase client with detectSessionInUrl should handle this automatically
-        // But we need to give it a moment to process
         const accessToken = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
 
         if (accessToken) {
-          // Tokens are in the hash - let Supabase handle it
-          // The detectSessionInUrl option should auto-process this
-          // Wait a moment then check for session
-          await new Promise(resolve => setTimeout(resolve, 500))
-        }
-
-        // Check if we have a session now
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-        if (sessionError) {
-          console.error('Session error:', sessionError)
-          setError(sessionError.message)
-          return
-        }
-
-        if (session) {
-          // Successfully authenticated - redirect to home
-          router.push('/')
-          return
-        }
-
-        // If there's a code param (PKCE fallback), try to exchange it
-        const code = urlParams.get('code')
-        if (code) {
-          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-          if (exchangeError) {
-            console.error('Code exchange error:', exchangeError)
-            setError(exchangeError.message)
-            return
-          }
-          if (data.session) {
-            router.push('/')
-            return
-          }
-        }
-
-        // If we have hash tokens but no session yet, try setting session manually
-        if (accessToken) {
-          const refreshToken = hashParams.get('refresh_token')
-          const { error: setSessionError } = await supabase.auth.setSession({
+          // Set the session from hash tokens
+          // This will store the session in cookies via @supabase/ssr
+          const { error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || '',
           })
 
-          if (setSessionError) {
-            console.error('Set session error:', setSessionError)
-            setError(setSessionError.message)
+          if (sessionError) {
+            console.error('Session error:', sessionError)
+            setError(sessionError.message)
             return
           }
 
           // Clear the hash from URL for cleaner appearance
           window.history.replaceState(null, '', window.location.pathname)
+
+          // Success - redirect to home
+          router.push('/')
+          router.refresh() // Refresh to ensure server sees new cookies
+          return
+        }
+
+        // Check for code param (PKCE fallback)
+        const code = urlParams.get('code')
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+          if (exchangeError) {
+            console.error('Code exchange error:', exchangeError)
+            setError(exchangeError.message)
+            return
+          }
+          router.push('/')
+          router.refresh()
+          return
+        }
+
+        // Check if we have a session already
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
           router.push('/')
           return
         }
 
-        // No session and no auth params
+        // No auth params
         setError('No authentication data received. Please try logging in again.')
       } catch (err) {
         console.error('Auth callback error:', err)

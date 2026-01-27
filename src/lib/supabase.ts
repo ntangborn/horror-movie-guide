@@ -1,27 +1,28 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 /**
  * Create a Supabase client for browser/client components
  *
- * Using implicit flow instead of PKCE to avoid code verifier storage issues.
- * PKCE requires storing a verifier when requesting the magic link and retrieving
- * it when the callback happens - if the user closes the tab or uses a different
- * browser context, the verifier is lost and auth fails.
+ * Using @supabase/ssr with cookie storage so session is available to:
+ * - Client-side code (for UI state)
+ * - API routes (for auth verification)
  *
- * Implicit flow sends tokens directly in the URL hash, no storage needed.
+ * Using implicit flow to avoid PKCE code verifier issues with magic links.
  */
 export const createClient = () => {
-  return createSupabaseClient(
+  return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       auth: {
         flowType: 'implicit',
-        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-        storageKey: 'ghost-guide-auth',
-        autoRefreshToken: true,
-        persistSession: true,
         detectSessionInUrl: true,
+      },
+      cookieOptions: {
+        // Keep session for 30 days
+        maxAge: 60 * 60 * 24 * 30,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
       },
     }
   )
