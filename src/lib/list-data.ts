@@ -76,22 +76,23 @@ export async function getListWithCards(slug: string): Promise<ListWithCards | nu
 
 /**
  * Get all published editorial lists
+ * Uses API route to fetch data server-side
  */
 export async function getEditorialLists(): Promise<CuratedList[]> {
-  const { data, error } = await supabase
-    .from('curated_lists')
-    .select('*')
-    .eq('type', 'editorial')
-    .eq('published', true)
-    .order('featured', { ascending: false })
-    .order('updated_at', { ascending: false })
+  try {
+    const response = await fetch('/api/binge?type=editorial-lists')
 
-  if (error) {
-    console.error('Error fetching editorial lists:', error.message)
+    if (!response.ok) {
+      console.error('Error fetching editorial lists:', response.statusText)
+      return []
+    }
+
+    const data = await response.json()
+    return data.lists || []
+  } catch (error) {
+    console.error('Error fetching editorial lists:', error)
     return []
   }
-
-  return (data || []) as CuratedList[]
 }
 
 /**
@@ -171,38 +172,23 @@ export interface BingeRow {
 
 /**
  * Get binge rows for display
+ * Uses API route to fetch data server-side (bypasses RLS issues)
  */
 export async function getBingeRows(filter: 'all' | 'editorial' | 'my-lists' = 'all'): Promise<BingeRow[]> {
-  let query = supabase
-    .from('curated_lists')
-    .select('*')
-    .eq('published', true)
+  try {
+    const response = await fetch(`/api/binge?filter=${filter}`)
 
-  if (filter === 'editorial') {
-    query = query.eq('type', 'editorial')
-  } else if (filter === 'my-lists') {
-    query = query.in('type', ['user-watchlist', 'user-custom'])
-  }
+    if (!response.ok) {
+      console.error('Error fetching binge rows:', response.statusText)
+      return []
+    }
 
-  query = query
-    .order('featured', { ascending: false })
-    .order('updated_at', { ascending: false })
-
-  const { data: lists, error } = await query
-
-  if (error) {
-    console.error('Error fetching binge rows:', error.message)
+    const data = await response.json()
+    return data.rows || []
+  } catch (error) {
+    console.error('Error fetching binge rows:', error)
     return []
   }
-
-  // Fetch cards for each list
-  const rows: BingeRow[] = []
-  for (const list of (lists || [])) {
-    const cards = await getCardsByIds(list.cards as string[])
-    rows.push({ list: list as CuratedList, cards })
-  }
-
-  return rows
 }
 
 /**
