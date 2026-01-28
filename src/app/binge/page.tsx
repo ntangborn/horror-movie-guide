@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Ghost, Plus, Play, List, User, Sparkles, Loader2, Heart } from 'lucide-react'
 import { BingeGrid } from '@/components/BingeGrid'
 import { CreateListModal } from '@/components/CreateListModal'
@@ -152,6 +153,7 @@ function BingeGridSkeleton() {
  * - Custom user lists
  */
 export default function BingePage() {
+  const router = useRouter()
   const [filter, setFilter] = useState<FilterOption>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [watchedItems, setWatchedItems] = useState<Set<string>>(new Set())
@@ -224,11 +226,10 @@ export default function BingePage() {
     // TODO: Open detail modal
   }, [])
 
-  // List selection handler
+  // List selection handler - navigate to list detail page
   const handleListSelect = useCallback((list: CuratedList) => {
-    console.log('Selected list:', list.title)
-    // TODO: Navigate to list detail page
-  }, [])
+    router.push(`/lists/${list.slug}`)
+  }, [router])
 
   // Create list handlers
   const handleCreateEmpty = useCallback((name: string, description: string) => {
